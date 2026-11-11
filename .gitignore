@@ -1,0 +1,10 @@
+node_modules/
+.runtime/
+data/
+tmp/
+_research/
+public/music/*.mp3
+public/music/manifest.json
+public/sfx/*.mp3
+.DS_Store
+.env

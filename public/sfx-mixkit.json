@@ -1,0 +1,308 @@
+{
+ "whoosh-1": {
+  "file": "whoosh-1.mp3",
+  "role": "whoosh",
+  "mixkit_id": "2350",
+  "source": "https://mixkit.co/free-sound-effects/whoosh/ #2350 Magic sparkle whoosh"
+ },
+ "whoosh-2": {
+  "file": "whoosh-2.mp3",
+  "role": "whoosh",
+  "mixkit_id": "1492",
+  "source": "https://mixkit.co/free-sound-effects/whoosh/ #1492 Cinematic whoosh fast transition"
+ },
+ "whoosh-3": {
+  "file": "whoosh-3.mp3",
+  "role": "whoosh",
+  "mixkit_id": "1714",
+  "source": "https://mixkit.co/free-sound-effects/whoosh/ #1714 Fast rocket whoosh"
+ },
+ "whoosh-cine": {
+  "file": "whoosh-cine.mp3",
+  "role": "whoosh",
+  "mixkit_id": "1491",
+  "source": "https://mixkit.co/free-sound-effects/whoosh/ #1491 Arrow whoosh"
+ },
+ "pop-1": {
+  "file": "pop-1.mp3",
+  "role": "ui",
+  "mixkit_id": "2925",
+  "source": "https://mixkit.co/free-sound-effects/pop/ #2925 Soap bubble sound"
+ },
+ "pop-3": {
+  "file": "pop-3.mp3",
+  "role": "ui",
+  "mixkit_id": "2364",
+  "source": "https://mixkit.co/free-sound-effects/pop/ #2364 Hard pop click"
+ },
+ "click-1": {
+  "file": "click-1.mp3",
+  "role": "ui",
+  "mixkit_id": "900",
+  "source": "https://mixkit.co/free-sound-effects/click/ #900 Sci fi click"
+ },
+ "tick-1": {
+  "file": "tick-1.mp3",
+  "role": "ui",
+  "mixkit_id": "2531",
+  "source": "https://mixkit.co/free-sound-effects/typing/ #2531 Typing on a laptop keyboard"
+ },
+ "typing-1": {
+  "file": "typing-1.mp3",
+  "role": "ui",
+  "mixkit_id": "2532",
+  "source": "https://mixkit.co/free-sound-effects/typing/ #2532 Slow typing on a keyboard"
+ },
+ "impact-1": {
+  "file": "impact-1.mp3",
+  "role": "impact",
+  "mixkit_id": "2908",
+  "source": "https://mixkit.co/free-sound-effects/impact/ #2908 Movie trailer epic impact"
+ },
+ "impact-2": {
+  "file": "impact-2.mp3",
+  "role": "impact",
+  "mixkit_id": "788",
+  "source": "https://mixkit.co/free-sound-effects/impact/ #788 Big cinematic impact"
+ },
+ "riser-1": {
+  "file": "riser-1.mp3",
+  "role": "whoosh",
+  "mixkit_id": "790",
+  "source": "https://mixkit.co/free-sound-effects/cinematic/ #790 Cinematic trailer riser"
+ },
+ "ding-1": {
+  "file": "ding-1.mp3",
+  "role": "ui",
+  "mixkit_id": "2870",
+  "source": "https://mixkit.co/free-sound-effects/notification/ #2870 Correct answer tone"
+ },
+ "buzzer-1": {
+  "file": "buzzer-1.mp3",
+  "role": "meme",
+  "mixkit_id": "948",
+  "source": "https://mixkit.co/free-sound-effects/game-show/ #948 Wrong answer bass buzzer"
+ },
+ "kaching-1": {
+  "file": "kaching-1.mp3",
+  "role": "impact",
+  "mixkit_id": "1993",
+  "source": "https://mixkit.co/free-sound-effects/cash/ #1993 Clinking coins"
+ },
+ "shutter-1": {
+  "file": "shutter-1.mp3",
+  "role": "ui",
+  "mixkit_id": "1430",
+  "source": "https://mixkit.co/free-sound-effects/camera/ #1430 Camera shutter hard click"
+ },
+ "pop-2": {
+  "file": "pop-2.mp3",
+  "role": "ui",
+  "mixkit_id": "2354",
+  "source": "https://mixkit.co/free-sound-effects/pop/ #2354 Message pop alert"
+ },
+ "reaction-boing": {
+  "file": "reaction-boing.mp3",
+  "role": "meme",
+  "mixkit_id": "2894",
+  "source": "https://mixkit.co/free-sound-effects/cartoon/ #2894 Boing hit sound"
+ },
+ "reaction-rimshot": {
+  "file": "reaction-rimshot.mp3",
+  "role": "meme",
+  "mixkit_id": "579",
+  "source": "https://mixkit.co/free-sound-effects/drum/ #579 Drum joke accent"
+ },
+ "reaction-fail-trombone": {
+  "file": "reaction-fail-trombone.mp3",
+  "role": "meme",
+  "mixkit_id": "471",
+  "source": "https://mixkit.co/free-sound-effects/funny/ #471 Sad game over trombone"
+ },
+ "reaction-drum-roll": {
+  "file": "reaction-drum-roll.mp3",
+  "role": "meme",
+  "mixkit_id": "566",
+  "source": "https://mixkit.co/free-sound-effects/drum/ #566 Drum Roll"
+ },
+ "reaction-crowd-laugh": {
+  "file": "reaction-crowd-laugh.mp3",
+  "role": "meme",
+  "mixkit_id": "424",
+  "source": "https://mixkit.co/free-sound-effects/crowd/ #424 Crowd laugh"
+ },
+ "reaction-crowd-boo": {
+  "file": "reaction-crowd-boo.mp3",
+  "role": "meme",
+  "mixkit_id": "463",
+  "source": "https://mixkit.co/free-sound-effects/crowd/ #463 Crowd disappointment long boo"
+ },
+ "reaction-applause-short": {
+  "file": "reaction-applause-short.mp3",
+  "role": "meme",
+  "mixkit_id": "475",
+  "source": "https://mixkit.co/free-sound-effects/applause/ #475 Small group clapping"
+ },
+ "reaction-tape-rewind": {
+  "file": "reaction-tape-rewind.mp3",
+  "role": "meme",
+  "mixkit_id": "1088",
+  "source": "https://mixkit.co/free-sound-effects/cinematic/ #1088 Tape rewind cinematic transition"
+ },
+ "reaction-cartoon-pop": {
+  "file": "reaction-cartoon-pop.mp3",
+  "role": "meme",
+  "mixkit_id": "729",
+  "source": "https://mixkit.co/free-sound-effects/cartoon/ #729 Cartoon bubbles pop"
+ },
+ "reaction-slide-whistle": {
+  "file": "reaction-slide-whistle.mp3",
+  "role": "meme",
+  "mixkit_id": "395",
+  "source": "https://mixkit.co/free-sound-effects/cartoon/ #395 Cartoon falling whistle"
+ },
+ "reaction-gasp": {
+  "file": "reaction-gasp.mp3",
+  "role": "meme",
+  "mixkit_id": "966",
+  "source": "https://mixkit.co/free-sound-effects/gasp/ #966 Male astonished gasp"
+ },
+ "reaction-ding-ding": {
+  "file": "reaction-ding-ding.mp3",
+  "role": "meme",
+  "mixkit_id": "588",
+  "source": "https://mixkit.co/free-sound-effects/bell/ #588 Service bell double ding"
+ },
+ "cinematic-deep-boom": {
+  "file": "cinematic-deep-boom.mp3",
+  "role": "impact",
+  "mixkit_id": "553",
+  "source": "https://mixkit.co/free-sound-effects/drum/ #553 Blockbuster trailer bass drum"
+ },
+ "cinematic-rumble-riser": {
+  "file": "cinematic-rumble-riser.mp3",
+  "role": "whoosh",
+  "mixkit_id": "632",
+  "source": "https://mixkit.co/free-sound-effects/riser/ #632 Cinematic drama riser"
+ },
+ "cinematic-drone-swell": {
+  "file": "cinematic-drone-swell.mp3",
+  "role": "whoosh",
+  "mixkit_id": "678",
+  "source": "https://mixkit.co/free-sound-effects/cinematic/ #678 Trailer cinematic suspense swell"
+ },
+ "cinematic-heartbeat": {
+  "file": "cinematic-heartbeat.mp3",
+  "role": "impact",
+  "mixkit_id": "490",
+  "source": "https://mixkit.co/free-sound-effects/boom/ #490 Human single heart beat"
+ },
+ "cinematic-film-flash": {
+  "file": "cinematic-film-flash.mp3",
+  "role": "whoosh",
+  "mixkit_id": "3131",
+  "source": "https://mixkit.co/free-sound-effects/impact/ #3131 Short impact static"
+ },
+ "tech-glitch-1": {
+  "file": "tech-glitch-1.mp3",
+  "role": "ui",
+  "mixkit_id": "1031",
+  "source": "https://mixkit.co/free-sound-effects/glitch/ #1031 Glitch short"
+ },
+ "tech-glitch-2": {
+  "file": "tech-glitch-2.mp3",
+  "role": "whoosh",
+  "mixkit_id": "2951",
+  "source": "https://mixkit.co/free-sound-effects/glitch/ #2951 Digital glitch break"
+ },
+ "tech-digital-whoosh": {
+  "file": "tech-digital-whoosh.mp3",
+  "role": "whoosh",
+  "mixkit_id": "2596",
+  "source": "https://mixkit.co/free-sound-effects/whoosh/ #2596 Electric whoosh"
+ },
+ "tech-ui-confirm": {
+  "file": "tech-ui-confirm.mp3",
+  "role": "ui",
+  "mixkit_id": "2865",
+  "source": "https://mixkit.co/free-sound-effects/notification/ #2865 Success software tone"
+ },
+ "tech-ui-error": {
+  "file": "tech-ui-error.mp3",
+  "role": "ui",
+  "mixkit_id": "1110",
+  "source": "https://mixkit.co/free-sound-effects/interface/ #1110 Click error"
+ },
+ "tech-keyboard-burst": {
+  "file": "tech-keyboard-burst.mp3",
+  "role": "ui",
+  "mixkit_id": "1387",
+  "source": "https://mixkit.co/free-sound-effects/typing/ #1387 Fast keyboard typing"
+ },
+ "tech-notification-2": {
+  "file": "tech-notification-2.mp3",
+  "role": "ui",
+  "mixkit_id": "2519",
+  "source": "https://mixkit.co/free-sound-effects/technology/ #2519 High tech notification bleep"
+ },
+ "tech-camera-flash": {
+  "file": "tech-camera-flash.mp3",
+  "role": "ui",
+  "mixkit_id": "1432",
+  "source": "https://mixkit.co/free-sound-effects/camera/ #1432 Camera digital shutter"
+ },
+ "cinematic-cine-hit": {
+  "file": "cinematic-cine-hit.mp3",
+  "role": "impact",
+  "mixkit_id": "2901",
+  "source": "https://mixkit.co/free-sound-effects/impact/ #2901 Epic movie impact"
+ },
+ "wood-saw": {
+  "file": "wood-saw.mp3",
+  "role": "foley",
+  "mixkit_id": "827",
+  "source": "https://mixkit.co/free-sound-effects/wood/ #827 Hand saw tool on wood"
+ },
+ "wood-hit": {
+  "file": "wood-hit.mp3",
+  "role": "impact",
+  "mixkit_id": "2182",
+  "source": "https://mixkit.co/free-sound-effects/wood/ #2182 Wood hard hit"
+ },
+ "wood-ambience": {
+  "file": "wood-ambience.mp3",
+  "role": "ambience",
+  "mixkit_id": "797",
+  "source": "https://mixkit.co/free-sound-effects/wood/ #797 Wooden construction assembly ambience"
+ },
+ "wood-sanding": {
+  "file": "wood-sanding.mp3",
+  "role": "foley",
+  "mixkit_id": "850",
+  "source": "https://mixkit.co/free-sound-effects/wood/ #850 Wood polishing electrical tool"
+ },
+ "marker-scribble": {
+  "file": "marker-scribble.mp3",
+  "role": "foley",
+  "mixkit_id": "2369",
+  "source": "https://mixkit.co/free-sound-effects/paper/ #2369 Writing scribble on paper"
+ },
+ "pencil-write": {
+  "file": "pencil-write.mp3",
+  "role": "foley",
+  "mixkit_id": "3194",
+  "source": "https://mixkit.co/free-sound-effects/paper/ #3194 Writing pencil"
+ },
+ "send-swoosh": {
+  "file": "send-swoosh.mp3",
+  "role": "ui",
+  "mixkit_id": "166",
+  "source": "https://mixkit.co/free-sound-effects/transition/ #166 Fast small sweep transition"
+ },
+ "alarm-bell": {
+  "file": "alarm-bell.mp3",
+  "role": "foley",
+  "mixkit_id": "995",
+  "source": "https://mixkit.co/free-sound-effects/alarm/ #995 Classic alarm"
+ }
+}

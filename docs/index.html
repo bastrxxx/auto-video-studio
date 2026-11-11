@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="vi">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Auto Video Studio — Tự động dựng video AI</title>
+	<link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+	<!-- Màn hình đăng nhập -->
+	<div class="login-wrap" id="loginScreen">
+		<form class="login-card" id="loginForm" autocomplete="on">
+			<div class="login-brand">
+				<div class="logo big">▶</div>
+				<div>
+					<h1>Auto Video Studio</h1>
+					<p>Hệ thống dựng video &amp; phụ đề AI tự động</p>
+				</div>
+			</div>
+			<label class="col">
+				<span>Tài khoản</span>
+				<input type="text" id="loginUser" name="username" placeholder="Nhập tài khoản…" autocomplete="username" required autofocus />
+			</label>
+			<label class="col">
+				<span>Mật khẩu</span>
+				<input type="password" id="loginPass" name="password" placeholder="Nhập mật khẩu…" autocomplete="current-password" required />
+			</label>
+			<div class="login-err hidden" id="loginErr"></div>
+			<button type="submit" class="primary big full" id="loginBtn">Đăng nhập vào Studio →</button>
+		</form>
+	</div>
+
+	<!-- Ứng dụng chính (chỉ hiển thị sau khi đăng nhập) -->
+	<div id="appShell" class="hidden">
+		<header class="top">
+			<div class="brand">
+				<div class="logo">▶</div>
+				<div>
+					<h1>Auto Video Studio</h1>
+					<p>Tải video thô lên → tự cắt, phụ đề chuẩn tiếng Việt, zoom, hiệu ứng → xuất MP4</p>
+				</div>
+			</div>
+			<div class="top-right">
+				<div class="status" id="status"></div>
+				<div class="user-box">
+					<span class="pill user-pill" id="userBadge">👤 sts</span>
+					<button class="ghost sm" id="logoutBtn" title="Đăng xuất khỏi hệ thống">Đăng xuất</button>
+				</div>
+			</div>
+		</header>
+
+		<main class="layout">
+			<aside class="history card">
+				<div class="card-head">
+					<h3>Dự án</h3>
+					<div class="head-btns">
+						<button class="ghost sm" id="newBtn" title="Tạo dự án mới">+ Mới</button>
+						<button class="ghost sm danger" id="clearAllJobsBtn" title="Xoá toàn bộ dự án đã lưu">Xoá hết</button>
+					</div>
+				</div>
+				<ul id="history"></ul>
+			</aside>
+
+			<section class="workspace">
+				<!-- Thanh chuyển bước làm việc -->
+				<nav class="view-tabs" id="viewTabs">
+					<button class="view-tab on" data-view="setup">
+						<span class="step-dot">1</span>
+						<div>
+							<b>Video &amp; Thiết lập</b>
+							<small>Tải clip, nhập ý tưởng, chọn phong cách</small>
+						</div>
+					</button>
+					<button class="view-tab" data-view="editor" id="tabEditor" disabled>
+						<span class="step-dot">2</span>
+						<div>
+							<b>Chỉnh sửa Phụ đề &amp; Timeline</b>
+							<small id="tabEditorSub">Chỉnh từng câu theo giây &amp; kéo thả</small>
+						</div>
+					</button>
+					<button class="view-tab" data-view="result" id="tabResult" disabled>
+						<span class="step-dot">3</span>
+						<div>
+							<b>Kết quả &amp; Tải MP4</b>
+							<small id="tabResultSub">Xem bản xuất cuối &amp; thống kê</small>
+						</div>
+					</button>
+				</nav>
+
+				<!-- Tiến trình xử lý (hiện khi đang chạy) -->
+				<div class="card hidden" id="progressCard">
+					<div class="card-head">
+						<h2><span class="num">⚡</span> Đang xử lý video</h2>
+						<button class="ghost sm danger" id="cancelBtn">Huỷ</button>
+					</div>
+					<ol class="steps" id="steps">
+						<li data-step="prep">Chuẩn hoá video &amp; âm lượng</li>
+						<li data-step="transcribe">Nhận dạng giọng nói từng từ</li>
+						<li data-step="order">Sắp xếp thứ tự clip</li>
+						<li data-step="analyze">Cắt khoảng lặng, nói lại, từ đệm</li>
+						<li data-step="ai">AI biên tập</li>
+						<li data-step="plan">Phụ đề, zoom, hiệu ứng, âm thanh</li>
+						<li data-step="render">Render bằng Remotion</li>
+					</ol>
+					<div class="bar big"><i id="mainBar"></i></div>
+					<p class="msg" id="msg"></p>
+					<details><summary>Xem nhật ký chi tiết</summary><pre id="log"></pre></details>
+				</div>
+
+				<!-- ==================== VIEW 1: UPLOAD & THIẾT LẬP ==================== -->
+				<div class="view-pane" id="viewSetup">
+					<!-- 1. Upload -->
+					<div class="card" id="uploadCard">
+						<div class="card-head">
+							<h2><span class="num">1</span> Video nguồn <small class="muted" id="clipCount"></small></h2>
+							<div class="head-btns">
+								<label class="ghost sm" id="addMore" hidden>+ Thêm video<input type="file" id="fileMore" accept="video/*,.mov,.mkv,.mp4,.webm" multiple hidden /></label>
+								<button class="ghost sm danger" id="clearVideosBtn" hidden title="Xoá tất cả video đang có để chọn lại">🗑 Xoá tất cả video</button>
+							</div>
+						</div>
+						<label class="drop" id="drop">
+							<input type="file" id="file" accept="video/*,.mov,.mkv,.mp4,.webm" multiple hidden />
+							<div class="drop-inner" id="dropInner">
+								<div class="drop-icon">⬆</div>
+								<b>Kéo thả 1 hoặc nhiều video vào đây</b>
+								<span>hoặc bấm để chọn (MP4, MOV, MKV, WEBM…). Nhiều clip sẽ được tự sắp xếp và ghép thành 1 video.</span>
+							</div>
+						</label>
+						<div class="clipbar hidden" id="clipBar">
+							<div class="order">
+								<span>Thứ tự ghép</span>
+								<div class="seg" data-opt="order">
+									<button data-v="auto" title="Giờ quay + nội dung (câu chào lên đầu, lời kêu gọi xuống cuối); có Gemini thì AI sắp theo mạch câu chuyện">✨ Tự động</button>
+									<button data-v="time" title="Theo giờ quay trong metadata của file">🕒 Giờ quay</button>
+									<button data-v="name" title="Theo tên file (IMG_2 trước IMG_10)">🔤 Tên file</button>
+									<button data-v="manual" title="Kéo thả để sắp xếp">✋ Thủ công</button>
+								</div>
+								<label class="row">Chuyển cảnh
+									<select data-opt="transition"><option value="flash">Loé sáng</option><option value="dip">Mờ qua đen</option><option value="whoosh">Âm thanh vút</option><option value="cut">Cắt thẳng</option></select>
+								</label>
+								<button class="ghost sm danger" id="clearVideosBtn2" type="button">🗑 Clear all video</button>
+							</div>
+							<ol class="clips" id="clips"></ol>
+							<video id="localPreview" class="hidden" muted playsinline controls></video>
+						</div>
+					</div>
+
+					<!-- 2. Options -->
+					<div class="card">
+						<div class="card-head">
+							<h2><span class="num">2</span> Ý tưởng &amp; Phong cách dựng</h2>
+							<div class="presets">
+								<button class="ghost sm" data-preset="viral">⚡ Viral TikTok</button>
+								<button class="ghost sm" data-preset="business">💼 Business</button>
+								<button class="ghost sm" data-preset="vlog">🎥 Vlog / Hướng dẫn</button>
+								<button class="ghost sm" data-preset="youtube">▶ YouTube ngang</button>
+							</div>
+						</div>
+
+						<label class="brief">
+							<div class="brief-head">
+								<b>💡 Ý tưởng &amp; mong muốn cho video</b>
+								<span class="muted">AI &amp; Whisper sẽ dựa vào đây để nhận đúng từ vựng, chọn cảnh và biên tập</span>
+							</div>
+							<textarea data-opt="brief" rows="2" placeholder="VD: Video TikTok bóng đá vui nhộn của sinh viên Phenikaa. Giữ các câu hài hước, nhịp nhanh, viết đúng tên riêng: Phenikaa, Hòa, Hải…"></textarea>
+						</label>
+
+						<div class="styles" id="styles"></div>
+
+						<!-- Thanh thiết lập nhanh (những thứ hay chỉnh nhất) -->
+						<div class="quick-bar">
+							<div class="qb-item">
+								<span class="qb-lbl">Khung hình</span>
+								<div class="seg" data-opt="format">
+									<button data-v="9:16">9:16</button><button data-v="16:9">16:9</button><button data-v="1:1">1:1</button><button data-v="4:5">4:5</button><button data-v="original">Gốc</button>
+								</div>
+							</div>
+							<div class="qb-item">
+								<span class="qb-lbl">Nhịp cắt khoảng lặng</span>
+								<div class="seg" data-opt="pace"><button data-v="natural">Tự nhiên</button><button data-v="fast">Nhanh</button><button data-v="ultra">Rất nhanh</button></div>
+							</div>
+							<div class="qb-item">
+								<span class="qb-lbl">Ngôn ngữ nói</span>
+								<select data-opt="language"><option value="vi">🇻🇳 Tiếng Việt</option><option value="auto">🌐 Tự nhận dạng</option><option value="en">🇺🇸 English</option><option value="zh">中文</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="th">ไทย</option><option value="fr">Français</option><option value="es">Español</option><option value="de">Deutsch</option><option value="ru">Русский</option></select>
+							</div>
+							<div class="qb-item">
+								<span class="qb-lbl">Màu sắc</span>
+								<div class="seg" id="quickColor"><button type="button" data-v="auto">✨ Tự chỉnh màu</button><button type="button" data-v="off">Giữ màu gốc</button></div>
+							</div>
+							<div class="qb-item">
+								<span class="qb-lbl">Model nhận dạng</span>
+								<select data-opt="model" id="modelSel"></select>
+							</div>
+						</div>
+						<div class="models" id="modelDl"></div>
+
+						<!-- Tuỳ chỉnh nâng cao thu gọn cho đỡ rối -->
+						<details class="adv-box">
+							<summary>⚙ Tuỳ chỉnh chi tiết (Phụ đề, Cắt tự động, Hiệu ứng, Nhạc nền, AI Gemini…)</summary>
+							<div class="grid">
+								<fieldset>
+									<legend>Khung hình &amp; Bố cục</legend>
+									<label class="row">Cách lấp khung
+										<select data-opt="fit"><option value="fill">Cắt theo khuôn mặt</option><option value="blur">Giữ nguyên + nền mờ</option></select>
+									</label>
+									<label class="row">Vùng an toàn
+										<select data-opt="platform"><option value="all">Reels + TikTok + Shorts</option><option value="tiktok">TikTok</option><option value="instagram">Instagram Reels</option><option value="shorts">YouTube Shorts</option><option value="none">Không</option></select>
+									</label>
+									<label class="row">Chất lượng xuất
+										<select data-opt="quality"><option value="draft">Nháp (nhanh, 1/2 độ phân giải)</option><option value="standard">Chuẩn (1080p)</option><option value="high">Cao (bitrate lớn)</option></select>
+									</label>
+								</fieldset>
+
+								<fieldset>
+									<legend>Tự động cắt</legend>
+									<label class="tog"><input type="checkbox" data-opt="removeSilence" /> Xoá khoảng lặng</label>
+									<label class="tog"><input type="checkbox" data-opt="removeRetakes" /> Xoá đoạn nói lại / nói vấp</label>
+									<label class="tog"><input type="checkbox" data-opt="removeFillers" /> Xoá từ đệm (ờ, ừm, uh…)</label>
+									<label class="row">Thời lượng tối đa
+										<select data-opt="maxDuration"><option value="0">Không giới hạn</option><option value="15">15 giây</option><option value="30">30 giây</option><option value="45">45 giây</option><option value="60">60 giây</option><option value="90">90 giây</option><option value="180">3 phút</option></select>
+									</label>
+								</fieldset>
+
+								<fieldset>
+									<legend>Phụ đề &amp; Từ điển</legend>
+									<label class="tog"><input type="checkbox" data-opt="captions" /> Hiển thị phụ đề tự động</label>
+									<label class="row">Số từ mỗi cụm <input type="range" min="1" max="6" step="1" data-opt="wordsPerGroup" /><output data-out="wordsPerGroup"></output></label>
+									<label class="row">Cỡ chữ <input type="range" min="0.7" max="1.4" step="0.05" data-opt="captionSize" /><output data-out="captionSize"></output></label>
+									<label class="row">Màu nhấn <input type="color" data-opt="accent" /><button class="ghost sm" id="resetAccent" type="button">Mặc định</button></label>
+									<label class="col">Từ điển sửa từ cố định (mỗi dòng: <code>sai = đúng</code>)
+										<textarea id="fixes" rows="2" placeholder="phenika = Phenikaa&#10;tic toc = TikTok"></textarea>
+									</label>
+								</fieldset>
+
+								<fieldset>
+									<legend>Hiệu ứng &amp; Âm thanh</legend>
+									<label class="row">Zoom theo nhịp <input type="range" min="0" max="2" step="0.1" data-opt="zoom" /><output data-out="zoom"></output></label>
+									<label class="tog"><input type="checkbox" data-opt="bigNumbers" /> Thẻ số lớn khi nói con số</label>
+									<label class="tog"><input type="checkbox" data-opt="emoji" /> Emoji cảm xúc cạnh đầu</label>
+									<label class="tog"><input type="checkbox" data-opt="progressBar" /> Thanh tiến trình trên đầu</label>
+									<label class="row">Âm thanh hiệu ứng
+										<select data-opt="sfx"><option value="off">Tắt</option><option value="restrained">Ít</option><option value="standard">Vừa</option><option value="rich">Nhiều</option></select>
+									</label>
+									<label class="row">Nhạc nền <select data-opt="music" id="musicSel"></select></label>
+								</fieldset>
+
+								<fieldset>
+									<legend>Tiêu đề &amp; Kêu gọi (CTA)</legend>
+									<label class="col">Tiêu đề mở đầu (hook) <input type="text" data-opt="title" placeholder="Để trống: AI tự đặt (nếu có Gemini)" maxlength="60" /></label>
+									<label class="col">Lời kêu gọi cuối video (CTA) <input type="text" data-opt="cta" placeholder="VD: Follow để xem phần 2 👉" maxlength="60" /></label>
+								</fieldset>
+
+								<fieldset>
+									<legend>AI biên tập (Gemini tuỳ chọn)</legend>
+									<label class="tog"><input type="checkbox" data-opt="useAI" /> Dùng Gemini chọn câu hay, tiêu đề, từ khoá</label>
+									<label class="tog"><input type="checkbox" data-opt="aiFixCaptions" /> AI soát lỗi chính tả &amp; dấu tiếng Việt</label>
+									<label class="col">Gemini API key <input type="password" id="geminiKey" placeholder="AIza… (lưu trong trình duyệt)" autocomplete="off" /></label>
+									<small class="muted">Lấy key miễn phí tại aistudio.google.com. Không có key vẫn chạy hoàn toàn bằng Whisper local.</small>
+								</fieldset>
+							</div>
+						</details>
+
+						<div class="actions">
+							<button class="primary big" id="startBtn" disabled>⚡ Tự động dựng video</button>
+							<span class="muted" id="startHint">Chọn video để bắt đầu</span>
+						</div>
+					</div>
+				</div>
+
+				<!-- ==================== VIEW 2: TRÌNH CHỈNH SỬA PHỤ ĐỀ & TIMELINE ==================== -->
+				<div class="view-pane hidden" id="viewEditor">
+					<div class="card editor-card" id="editorCard">
+						<div class="ed-header">
+							<div class="ed-title">
+								<h2><span class="num">2</span> Trình chỉnh sửa Studio</h2>
+								<span class="ed-status-badge" id="edStatus">Đã tải timeline</span>
+							</div>
+							<div class="edbar">
+								<div class="ed-group">
+									<button class="ghost sm" id="edUndo" title="Hoàn tác (⌘/Ctrl+Z)">↶ Hoàn tác</button>
+									<button class="ghost sm" id="edRedo" title="Làm lại (⇧⌘Z)">↷ Làm lại</button>
+								</div>
+								<div class="ed-group">
+									<button class="ghost sm" id="edSplit" title="Tách đoạn tại kim thời gian (S)">✂ Tách</button>
+									<button class="ghost sm danger" id="edDelete" title="Xoá khối đang chọn (Delete)">🗑 Xoá</button>
+								</div>
+								<div class="ed-group">
+									<button class="ghost sm" id="edAddCap">+ Phụ đề</button>
+									<select id="edAddBeat" class="sm"><option value="">+ Hiệu ứng…</option><option value="emoji">🔥 Emoji</option><option value="big"># Thẻ số lớn</option><option value="pill">🏷 Nhãn chủ đề</option><option value="title">🅣 Tiêu đề mở đầu</option><option value="cta">📣 Lời kêu gọi cuối</option></select>
+								</div>
+								<div class="ed-group ed-export-group">
+									<a class="ghost sm" id="edDlVideo" download title="Tải ngay file MP4 đã render gần nhất">⬇ Tải MP4</a>
+									<a class="ghost sm" id="edDlSrt" download title="Tải file phụ đề .srt">📄 .SRT</a>
+									<button class="primary" id="edExport" title="Render lại file MP4 theo timeline đã chỉnh sửa">🎬 Xuất video mới</button>
+								</div>
+							</div>
+						</div>
+
+						<div class="ed-top">
+							<!-- Cột trái: Màn hình xem trước Remotion Player -->
+							<div class="ed-player-col">
+								<div class="ed-player"><div id="edPlayer"></div></div>
+								<div class="ed-shortcuts">
+									<span><kbd>Space</kbd> Phát/Dừng</span>
+									<span><kbd>S</kbd> Tách đôi</span>
+									<span><kbd>Delete</kbd> Xoá</span>
+									<span><kbd>⌘Z</kbd> Hoàn tác</span>
+								</div>
+							</div>
+
+							<!-- Cột phải: Danh sách phụ đề từng câu rõ nét + Inspector gọn -->
+							<div class="ed-side">
+								<div class="side-tabs" id="sideTabs">
+									<button type="button" class="side-tab on" data-side="cap">💬 Phụ đề từng câu</button>
+									<button type="button" class="side-tab" data-side="color">🎨 Chỉnh màu</button>
+								</div>
+
+								<div class="color-panel hidden" id="colorPanel"></div>
+
+								<div class="cap-panel" id="capPanel">
+									<div class="cap-toolbar">
+										<div class="cap-toolbar-left">
+											<h3>💬 Phụ đề từng câu</h3>
+											<span class="cap-badge" id="capCount">0 câu</span>
+										</div>
+										<div class="cap-toolbar-right">
+											<input type="search" id="capSearch" class="cap-search" placeholder="🔍 Tìm chữ trong phụ đề…" />
+											<button class="ghost sm" id="capCleanQuotes" title="Xoá dấu ngoặc kép thừa (&quot;…&quot;) trong toàn bộ phụ đề">✨ Dọn dấu &quot;&quot;</button>
+										</div>
+									</div>
+
+									<div class="cap-col-head">
+										<span>Nghe</span>
+										<span>#</span>
+										<span>Bắt đầu → Kết thúc (giây)</span>
+										<span>Nội dung câu phụ đề <small class="muted">(bấm Enter xuống câu dưới)</small></span>
+										<span>Xoá</span>
+									</div>
+
+									<div class="cap-list" id="capList"></div>
+								</div>
+
+								<div class="inspector" id="inspector"></div>
+							</div>
+						</div>
+
+						<!-- Timeline kéo thả kiểu CapCut -->
+						<div class="ed-tl">
+							<div class="tl-bar">
+								<div class="tl-bar-left">
+									<span id="tlTime" class="mono tl-time-pill">0:00.0 / 0:00.0</span>
+									<span class="muted tl-hint">Kéo khối để di chuyển · Kéo 2 mép trái/phải để cắt · Bấm đúp vào phụ đề để sửa chữ</span>
+								</div>
+								<label class="row tl-zoom-lbl">🔍 Thu phóng timeline <input type="range" id="tlZoom" min="15" max="260" step="1" /></label>
+							</div>
+							<div class="tl-scroll" id="tlScroll">
+								<div class="tl-inner" id="tlInner">
+									<div class="tl-ruler" id="tlRuler"></div>
+									<div class="tl-track"><b class="lbl">🎬 Video</b><div class="lane" id="trVideo"></div></div>
+									<div class="tl-track"><b class="lbl">💬 Phụ đề</b><div class="lane" id="trCap"></div></div>
+									<div class="tl-track"><b class="lbl">✨ Hiệu ứng</b><div class="lane" id="trBeat"></div></div>
+									<div class="tl-playhead" id="tlPlayhead"></div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- ==================== VIEW 3: KẾT QUẢ & TẢI VỀ ==================== -->
+				<div class="view-pane hidden" id="viewResult">
+					<div class="card" id="resultCard">
+						<div class="card-head">
+							<h2><span class="num">3</span> Kết quả xuất video</h2>
+							<div class="dl">
+								<a class="primary" id="dlVideo" download>⬇ Tải video MP4</a>
+								<a class="ghost" id="dlSrt" download>📄 Tải phụ đề .srt</a>
+								<a class="ghost" id="dlPlan" target="_blank">📋 Kế hoạch .json</a>
+								<button class="ghost" id="backToEditorBtn">✂️ Quay lại chỉnh sửa</button>
+							</div>
+						</div>
+						<div class="result">
+							<video id="outVideo" controls playsinline></video>
+							<div class="stats" id="stats"></div>
+						</div>
+					</div>
+				</div>
+			</section>
+		</main>
+	</div>
+
+	<script type="module" src="./app.js"></script>
+</body>
+</html>
