@@ -1,16 +1,163 @@
 // Browser-side fallback engine for GitHub Pages (https://bastrxxx.github.io/auto-video-studio/)
 // When the Mac backend server (localhost:8790 or Cloudflare Tunnel) is unreachable, this engine
-// runs 100% in the browser: WebAudio silence detection, Canvas auto-color analysis, Gemini audio
-// transcription (when API key is provided), and live Remotion <Player> + Timeline / Color editor.
+// runs 100% in the browser and persists all projects, timelines, settings, and video File blobs
+// inside IndexedDB (AutoVideoStudioDB).
 
 const AUTH_USER = 'sts';
 const AUTH_PASS = '1111';
+const IDB_NAME = 'AutoVideoStudioDB';
+const IDB_VERSION = 1;
 
 const store = {
 	jobs: new Map(),
 	timelines: new Map(),
-	files: new Map(), // clipId -> File
+	files: new Map(), // `${jobId}:${clipId}` -> File | Blob
+	settings: new Map(),
 };
+
+let idbPromise = null;
+let hydratedPromise = null;
+
+function openIdb() {
+	if (idbPromise) return idbPromise;
+	idbPromise = new Promise((resolve, reject) => {
+		const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+		req.onupgradeneeded = () => {
+			const db = req.result;
+			if (!db.objectStoreNames.contains('jobs')) db.createObjectStore('jobs', {keyPath: 'id'});
+			if (!db.objectStoreNames.contains('timelines')) db.createObjectStore('timelines', {keyPath: 'jobId'});
+			if (!db.objectStoreNames.contains('files')) db.createObjectStore('files', {keyPath: 'key'});
+			if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings', {keyPath: 'key'});
+		};
+		req.onsuccess = () => resolve(req.result);
+		req.onerror = () => reject(req.error);
+	});
+	return idbPromise;
+}
+
+async function idbGetAll(storeName) {
+	try {
+		const db = await openIdb();
+		return await new Promise((resolve, reject) => {
+			const tx = db.transaction(storeName, 'readonly');
+			const req = tx.objectStore(storeName).getAll();
+			req.onsuccess = () => resolve(req.result || []);
+			req.onerror = () => reject(req.error);
+		});
+	} catch {
+		return [];
+	}
+}
+
+async function idbPut(storeName, val) {
+	try {
+		const db = await openIdb();
+		await new Promise((resolve, reject) => {
+			const tx = db.transaction(storeName, 'readwrite');
+			tx.objectStore(storeName).put(val);
+			tx.oncomplete = () => resolve();
+			tx.onerror = () => reject(tx.error);
+		});
+	} catch {}
+}
+
+async function idbDelete(storeName, key) {
+	try {
+		const db = await openIdb();
+		await new Promise((resolve, reject) => {
+			const tx = db.transaction(storeName, 'readwrite');
+			tx.objectStore(storeName).delete(key);
+			tx.oncomplete = () => resolve();
+			tx.onerror = () => reject(tx.error);
+		});
+	} catch {}
+}
+
+async function idbClear(storeName) {
+	try {
+		const db = await openIdb();
+		await new Promise((resolve, reject) => {
+			const tx = db.transaction(storeName, 'readwrite');
+			tx.objectStore(storeName).clear();
+			tx.oncomplete = () => resolve();
+			tx.onerror = () => reject(tx.error);
+		});
+	} catch {}
+}
+
+async function ensureHydrated() {
+	if (hydratedPromise) return hydratedPromise;
+	hydratedPromise = (async () => {
+		const [files, timelines, jobs, settings] = await Promise.all([
+			idbGetAll('files'),
+			idbGetAll('timelines'),
+			idbGetAll('jobs'),
+			idbGetAll('settings'),
+		]);
+		for (const f of files) {
+			if (f?.key && f?.blob) store.files.set(f.key, f.blob);
+		}
+		for (const t of timelines) {
+			if (t?.jobId && t?.timeline) store.timelines.set(t.jobId, t.timeline);
+		}
+		for (const s of settings) {
+			if (s?.key) store.settings.set(s.key, s.value);
+		}
+		const AVS = window.AVS;
+		for (const j of jobs) {
+			if (!j?.id) continue;
+			// Rebuild fresh object URLs for each clip from IndexedDB binary Blob
+			for (const c of j.clips || []) {
+				const blob = store.files.get(`${j.id}:${c.id}`);
+				if (blob) c.url = URL.createObjectURL(blob);
+			}
+			if (j.state === 'running' || j.state === 'queued') {
+				j.state = 'done';
+				j.step = 'done';
+				j.progress = 1;
+			}
+			const tl = store.timelines.get(j.id);
+			if (tl && AVS?.compile) {
+				try {
+					const plan = AVS.compile(tl, buildCtxForJob(j));
+					const srtBlob = new Blob([AVS.timelineToSrt(plan)], {type: 'text/plain;charset=utf-8'});
+					const planBlob = new Blob([JSON.stringify(plan, null, 2)], {type: 'application/json'});
+					j.result = {
+						duration: plan.durationInFrames / plan.fps,
+						original: (j.clips || []).reduce((a, c) => a + c.duration, 0),
+						video: j.clips?.[0]?.url || '',
+						srt: URL.createObjectURL(srtBlob),
+						plan: URL.createObjectURL(planBlob),
+						renderedAt: j.result?.renderedAt || Date.now(),
+						renderSeconds: j.result?.renderSeconds || 1,
+					};
+				} catch {}
+			}
+			store.jobs.set(j.id, j);
+		}
+	})();
+	return hydratedPromise;
+}
+
+async function persistJob(job) {
+	store.jobs.set(job.id, job);
+	await idbPut('jobs', JSON.parse(JSON.stringify(job)));
+}
+
+async function persistTimeline(jobId, timeline) {
+	store.timelines.set(jobId, timeline);
+	await idbPut('timelines', {jobId, timeline: JSON.parse(JSON.stringify(timeline)), updatedAt: Date.now()});
+}
+
+function browserDbStats() {
+	return {
+		engine: 'IndexedDB (AutoVideoStudioDB)',
+		file: 'IndexedDB://AutoVideoStudioDB',
+		jobs: store.jobs.size,
+		docs: store.timelines.size,
+		files: store.files.size,
+	};
+}
 
 const probeVideoFile = (file) =>
 	new Promise((resolve, reject) => {
@@ -163,6 +310,7 @@ const buildCtxForJob = (job) => ({
 });
 
 export async function handleBrowserUpload(files, meta, existingJobId) {
+	await ensureHydrated();
 	let job = existingJobId ? store.jobs.get(existingJobId) : null;
 	if (!job) {
 		const id = `web-${Date.now().toString(36)}`;
@@ -176,7 +324,7 @@ export async function handleBrowserUpload(files, meta, existingJobId) {
 			state: 'uploaded',
 			step: 'upload',
 			progress: 0,
-			message: 'Đã tải vào trình duyệt',
+			message: 'Đã lưu vào database trình duyệt (IndexedDB)',
 			log: [],
 			options: {...(AVS?.DEFAULT_OPTIONS || {})},
 			version: 0,
@@ -187,8 +335,12 @@ export async function handleBrowserUpload(files, meta, existingJobId) {
 	for (let i = 0; i < files.length; i++) {
 		const f = files[i];
 		const pr = await probeVideoFile(f);
-		const cid = `c${job.clips.length}`;
-		store.files.set(`${job.id}:${cid}`, f);
+		let n = job.clips.length;
+		let cid = `c${n}`;
+		while (job.clips.some((c) => c.id === cid)) cid = `c${++n}`;
+		const fKey = `${job.id}:${cid}`;
+		store.files.set(fKey, f);
+		await idbPut('files', {key: fKey, jobId: job.id, clipId: cid, name: f.name, blob: f, updatedAt: Date.now()});
 		const clip = {
 			id: cid,
 			name: f.name,
@@ -205,6 +357,7 @@ export async function handleBrowserUpload(files, meta, existingJobId) {
 		added.push(cid);
 	}
 	job.name = job.clips.length > 1 ? `${job.clips[0].name} +${job.clips.length - 1}` : job.clips[0]?.name || job.name;
+	await persistJob(job);
 	return {ok: true, id: job.id, added, job};
 }
 
@@ -217,10 +370,11 @@ async function runBrowserPipeline(job, mode = 'auto') {
 	try {
 		job.state = 'running';
 		job.version++;
+		await persistJob(job);
 		if (mode === 'timeline' && store.timelines.has(job.id)) {
 			job.step = 'plan';
 			job.progress = 0.7;
-			log('Biên dịch timeline & cập nhật phụ đề...');
+			log('Biên dịch timeline & cập nhật vào IndexedDB...');
 			const tl = store.timelines.get(job.id);
 			const plan = AVS.compile(tl, buildCtxForJob(job));
 			const srtBlob = new Blob([AVS.timelineToSrt(plan)], {type: 'text/plain;charset=utf-8'});
@@ -237,7 +391,8 @@ async function runBrowserPipeline(job, mode = 'auto') {
 			job.state = 'done';
 			job.step = 'done';
 			job.progress = 1;
-			log('Hoàn tất cập nhật timeline!');
+			log('Hoàn tất cập nhật timeline & lưu vào database!');
+			await persistJob(job);
 			return;
 		}
 
@@ -270,7 +425,6 @@ async function runBrowserPipeline(job, mode = 'auto') {
 			const file = store.files.get(`${job.id}:${c.id}`);
 			log(`Phân tích âm thanh & khoảng lặng: ${c.name}...`);
 			const silences = file ? await detectBrowserSilences(file, c.duration) : [];
-			// Invert silences into kept takes
 			let cur = 0;
 			const takes = [];
 			if (job.options.removeSilence && silences.length) {
@@ -283,7 +437,6 @@ async function runBrowserPipeline(job, mode = 'auto') {
 			if (!takes.length) takes.push([0, c.duration]);
 			for (const [a, b] of takes) segments.push({id: AVS.tlId(), clip: c.id, a: +a.toFixed(2), b: +b.toFixed(2)});
 
-			// Try Gemini transcription if key is provided
 			let sentences = null;
 			if (file && job.options.geminiKey) {
 				log(`Nhận dạng tiếng Việt bằng Gemini AI: ${c.name}...`);
@@ -298,8 +451,7 @@ async function runBrowserPipeline(job, mode = 'auto') {
 					captions.push(cap);
 				}
 			} else {
-				// Create editable caption placeholders aligned with each kept speech segment
-				takes.forEach(([a, b], idx) => {
+				takes.forEach(([a, b]) => {
 					const dur = b - a;
 					const step = Math.min(3.0, Math.max(1.5, dur));
 					for (let t = a; t < b - 0.2; t += step) {
@@ -321,7 +473,7 @@ async function runBrowserPipeline(job, mode = 'auto') {
 			title: job.options.title ? {text: job.options.title, dur: 2.6} : null,
 			cta: job.options.cta ? {text: job.options.cta, dur: 2.6} : null,
 		};
-		store.timelines.set(job.id, tl);
+		await persistTimeline(job.id, tl);
 		const plan = AVS.compile(tl, buildCtxForJob(job));
 		const srtBlob = new Blob([AVS.timelineToSrt(plan)], {type: 'text/plain;charset=utf-8'});
 		const planBlob = new Blob([JSON.stringify(plan, null, 2)], {type: 'application/json'});
@@ -340,32 +492,39 @@ async function runBrowserPipeline(job, mode = 'auto') {
 		job.state = 'done';
 		job.step = 'done';
 		job.progress = 1;
-		log(`Hoàn tất! Đã tạo ${segments.length} đoạn cắt và ${captions.length} câu phụ đề.`);
+		log(`Hoàn tất! Đã tạo ${segments.length} đoạn cắt, ${captions.length} câu phụ đề & lưu vào IndexedDB.`);
+		await persistJob(job);
 	} catch (e) {
 		job.state = 'error';
 		job.error = e.message;
 		log(`LỖI: ${e.message}`);
+		await persistJob(job);
 	}
 }
 
 export async function handleBrowserApi(url, opts = {}) {
+	await ensureHydrated();
 	const method = (opts.method || 'GET').toUpperCase();
 	const body = opts.body || {};
 	const AVS = window.AVS;
 
 	if (url === '/api/auth') {
-		const authed = localStorage.getItem('avs.browser_auth') === '1';
+		const authed = localStorage.getItem('avs.browser_auth') === '1' || store.settings.get('auth') === AUTH_USER;
 		return {ok: true, authenticated: authed, user: authed ? AUTH_USER : null, browserMode: true};
 	}
 	if (url === '/api/login') {
 		if (String(body.username || '').trim() === AUTH_USER && String(body.password || '').trim() === AUTH_PASS) {
 			localStorage.setItem('avs.browser_auth', '1');
+			store.settings.set('auth', AUTH_USER);
+			await idbPut('settings', {key: 'auth', value: AUTH_USER, updatedAt: Date.now()});
 			return {ok: true, user: AUTH_USER, token: 'browser-token'};
 		}
 		throw new Error('Sai tài khoản hoặc mật khẩu');
 	}
 	if (url === '/api/logout') {
 		localStorage.removeItem('avs.browser_auth');
+		store.settings.delete('auth');
+		await idbDelete('settings', 'auth');
 		return {ok: true};
 	}
 	if (url === '/api/info') {
@@ -380,7 +539,21 @@ export async function handleBrowserApi(url, opts = {}) {
 			sfx: 10,
 			styles,
 			defaults: AVS?.DEFAULT_OPTIONS || {},
+			savedOptions: store.settings.get('user_options') || null,
+			db: browserDbStats(),
 		};
+	}
+	if (url === '/api/db') {
+		return {ok: true, db: browserDbStats()};
+	}
+	if (url === '/api/settings' && method === 'PUT') {
+		if (body.options && typeof body.options === 'object') {
+			const prev = store.settings.get('user_options') || {};
+			const next = {...prev, ...body.options};
+			store.settings.set('user_options', next);
+			await idbPut('settings', {key: 'user_options', value: next, updatedAt: Date.now()});
+		}
+		return {ok: true, db: browserDbStats()};
 	}
 	if (url === '/api/jobs' && method === 'GET') {
 		return {ok: true, jobs: [...store.jobs.values()].sort((a, b) => b.createdAt - a.createdAt)};
@@ -389,14 +562,23 @@ export async function handleBrowserApi(url, opts = {}) {
 		store.jobs.clear();
 		store.timelines.clear();
 		store.files.clear();
+		await Promise.all([idbClear('jobs'), idbClear('timelines'), idbClear('files')]);
 		return {ok: true};
 	}
 	let m;
 	if ((m = /^\/api\/jobs\/([^/]+)$/.exec(url))) {
 		const id = m[1];
 		if (method === 'DELETE') {
+			const job = store.jobs.get(id);
+			if (job) {
+				for (const c of job.clips || []) {
+					store.files.delete(`${id}:${c.id}`);
+					await idbDelete('files', `${id}:${c.id}`);
+				}
+			}
 			store.jobs.delete(id);
 			store.timelines.delete(id);
+			await Promise.all([idbDelete('jobs', id), idbDelete('timelines', id)]);
 			return {ok: true};
 		}
 		const job = store.jobs.get(id);
@@ -404,10 +586,20 @@ export async function handleBrowserApi(url, opts = {}) {
 		return {ok: true, job};
 	}
 	if ((m = /^\/api\/jobs\/([^/]+)\/clips\/([^/]+)$/.exec(url)) && method === 'DELETE') {
-		const job = store.jobs.get(m[1]);
+		const id = m[1];
+		const cid = m[2];
+		const job = store.jobs.get(id);
 		if (job) {
-			job.clips = job.clips.filter((c) => c.id !== m[2]);
-			if (!job.clips.length) store.jobs.delete(m[1]);
+			store.files.delete(`${id}:${cid}`);
+			await idbDelete('files', `${id}:${cid}`);
+			job.clips = job.clips.filter((c) => c.id !== cid);
+			if (!job.clips.length) {
+				store.jobs.delete(id);
+				store.timelines.delete(id);
+				await Promise.all([idbDelete('jobs', id), idbDelete('timelines', id)]);
+			} else {
+				await persistJob(job);
+			}
 		}
 		return {ok: true};
 	}
@@ -416,6 +608,7 @@ export async function handleBrowserApi(url, opts = {}) {
 		if (!job) throw new Error('Không tìm thấy dự án');
 		job.options = {...job.options, ...(body.options || {})};
 		if (body.face) job.faces = {...job.faces, ...body.face};
+		await persistJob(job);
 		setTimeout(() => runBrowserPipeline(job, 'auto'), 50);
 		return {ok: true, id: job.id};
 	}
@@ -423,7 +616,8 @@ export async function handleBrowserApi(url, opts = {}) {
 		const job = store.jobs.get(m[1]);
 		if (!job) throw new Error('Không tìm thấy dự án');
 		job.options = {...job.options, ...(body.options || {})};
-		if (body.timeline) store.timelines.set(job.id, body.timeline);
+		if (body.timeline) await persistTimeline(job.id, body.timeline);
+		await persistJob(job);
 		setTimeout(() => runBrowserPipeline(job, 'timeline'), 50);
 		return {ok: true, id: job.id};
 	}
@@ -446,7 +640,11 @@ export async function handleBrowserApi(url, opts = {}) {
 		const job = store.jobs.get(m[1]);
 		if (!job) throw new Error('Không tìm thấy dự án');
 		if (method === 'PUT') {
-			store.timelines.set(job.id, body.timeline);
+			await persistTimeline(job.id, body.timeline);
+			if (body.options) {
+				job.options = {...job.options, ...body.options};
+				await persistJob(job);
+			}
 			return {ok: true};
 		}
 		const timeline = store.timelines.get(job.id);

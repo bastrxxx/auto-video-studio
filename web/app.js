@@ -178,11 +178,13 @@ async function enterStudio(user) {
 	$('#appShell').classList.remove('hidden');
 
 	state.info = await api('/api/info');
-	const saved = JSON.parse(localStorage.getItem('avs.opts') || '{}');
+	const dbSaved = state.info.savedOptions || {};
+	const localSaved = JSON.parse(localStorage.getItem('avs.opts') || '{}');
+	const saved = {...localSaved, ...dbSaved};
 	state.opts = {...state.info.defaults, ...saved, manualOrder: []};
-	state.opts.color = {...(state.info.defaults.color || {}), ...(saved.color || {})};
+	state.opts.color = {...(state.info.defaults.color || {}), ...(localSaved.color || {}), ...(dbSaved.color || {})};
 	if (!state.info.models.includes(state.opts.model)) state.opts.model = state.info.models[0] || 'small';
-	$('#geminiKey').value = localStorage.getItem('avs.gemini') || '';
+	$('#geminiKey').value = localStorage.getItem('avs.gemini') || saved.geminiKey || '';
 
 	renderStatus();
 	renderStyles();
@@ -215,15 +217,17 @@ function switchView(view) {
 
 function renderStatus() {
 	const i = state.info;
+	const db = i?.db;
 	if (BROWSER_MODE) {
 		$('#status').innerHTML = [
-			`<span class="pill ok">Chế độ Trình duyệt Online</span>`,
+			`<span class="pill ok" title="Dữ liệu được lưu vào IndexedDB (AutoVideoStudioDB)">🗄 IndexedDB · ${db?.jobs ?? 0} dự án</span>`,
 			`<span class="pill ok">Remotion Player</span>`,
 			`<span class="pill ok">Auto Color</span>`,
 		].join('');
 		return;
 	}
 	$('#status').innerHTML = [
+		`<span class="pill ok" title="Cơ sở dữ liệu SQLite: ${escapeHtml(db?.file || 'data/studio.db')}">🗄 SQLite · ${db?.jobs ?? 0} dự án</span>`,
 		`<span class="pill ${i.whisper ? 'ok' : 'bad'}">Whisper ${i.whisper ? i.models.join(', ') : 'chưa cài'}</span>`,
 		`<span class="pill ok">Remotion</span>`,
 		`<span class="pill ${i.sfx ? 'ok' : 'bad'}">${i.sfx} âm thanh</span>`,
@@ -273,9 +277,15 @@ async function pollModels() {
 	else if (dl && dl.progress >= 1 && state.info.models.includes(dl.model)) setOpt('model', dl.model);
 }
 
+let saveSettingsTimer = null;
 function setOpt(k, v, silent) {
 	state.opts[k] = v;
-	localStorage.setItem('avs.opts', JSON.stringify({...state.opts, geminiKey: '', manualOrder: []}));
+	const clean = {...state.opts, geminiKey: '', manualOrder: []};
+	localStorage.setItem('avs.opts', JSON.stringify(clean));
+	clearTimeout(saveSettingsTimer);
+	saveSettingsTimer = setTimeout(() => {
+		api('/api/settings', {method: 'PUT', body: {options: clean}}).catch(() => undefined);
+	}, 450);
 	if (!silent) syncOptions();
 	if (k === 'order') renderClips();
 	refreshEditor();
@@ -822,6 +832,10 @@ async function exportTimeline() {
 // ---------------------------------------------------------------- History
 async function refreshHistory() {
 	const {jobs} = await api('/api/jobs');
+	if (state.info?.db) {
+		state.info.db.jobs = jobs.length;
+		renderStatus();
+	}
 	$('#clearAllJobsBtn').disabled = !jobs.length;
 	$('#history').innerHTML =
 		jobs

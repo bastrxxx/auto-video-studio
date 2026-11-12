@@ -16,6 +16,16 @@ import {renderPlan} from './pipeline/render.js';
 import {orderClips} from './pipeline/order.js';
 import {analyzeClipColor} from './pipeline/color.js';
 import {DEFAULT_COLOR, type ColorAdjust} from '../shared/color.js';
+import {
+	dbClearJobs,
+	dbDeleteDoc,
+	dbDeleteJob,
+	dbLoadJobs,
+	dbReadDoc,
+	dbSaveJob,
+	dbWriteDoc,
+	migrateDiskJobsToDb,
+} from './db.js';
 
 export type Step = 'upload' | 'prep' | 'transcribe' | 'order' | 'analyze' | 'ai' | 'plan' | 'render' | 'done';
 
@@ -74,20 +84,22 @@ let running = false;
 
 const dirOf = (id: string) => path.join(PATHS.jobs, id);
 const fileOf = (id: string, f: string) => path.join(dirOf(id), f);
-const readJson = <T>(id: string, f: string): T | null => {
-	try {
-		return JSON.parse(fs.readFileSync(fileOf(id, f), 'utf8')) as T;
-	} catch {
-		return null;
+const readJson = <T>(id: string, f: string): T | null => dbReadDoc<T>(id, f);
+const writeJson = (id: string, f: string, data: unknown) => {
+	dbWriteDoc(id, f, data);
+	if (f === 'plan.json' && fs.existsSync(dirOf(id))) {
+		try {
+			fs.writeFileSync(fileOf(id, f), JSON.stringify(data));
+		} catch {}
 	}
 };
-const writeJson = (id: string, f: string, data: unknown) => fs.writeFileSync(fileOf(id, f), JSON.stringify(data));
-const save = (job: Job) => writeJson(job.id, 'job.json', job);
+const save = (job: Job) => dbSaveJob(job);
 
-// restore jobs from disk (and migrate single-clip jobs)
-for (const id of fs.existsSync(PATHS.jobs) ? fs.readdirSync(PATHS.jobs) : []) {
-	const j = readJson<Job>(id, 'job.json');
-	if (!j) continue;
+// Migrate any legacy JSON files on disk into SQLite, then restore all jobs from SQLite database
+migrateDiskJobsToDb();
+for (const j of dbLoadJobs<Job>()) {
+	if (!j || !j.id) continue;
+	const id = j.id;
 	if (!j.clips) {
 		j.clips =
 			j.input && j.probe
@@ -111,6 +123,7 @@ for (const id of fs.existsSync(PATHS.jobs) ? fs.readdirSync(PATHS.jobs) : []) {
 	if (j.state === 'running' || j.state === 'queued') {
 		j.state = 'error';
 		j.error = 'Server đã khởi động lại trong khi xử lý. Bấm “Dựng lại”.';
+		dbSaveJob(j);
 	}
 	jobs.set(id, j);
 }
@@ -202,6 +215,8 @@ export const removeClip = (id: string, clipId: string) => {
 		return;
 	}
 	for (const f of [c.input, c.proxyFile, c.wavFile, c.analysisFile, c.faceFile]) fs.rmSync(path.isAbsolute(f) ? f : fileOf(id, f), {force: true});
+	dbDeleteDoc(id, c.analysisFile);
+	dbDeleteDoc(id, c.faceFile);
 	job.clips = job.clips.filter((x) => x.id !== clipId);
 	job.name = job.clips.length > 1 ? `${job.clips[0].name} +${job.clips.length - 1}` : job.clips[0].name;
 	job.aiKey = undefined;
@@ -213,11 +228,13 @@ export const deleteJob = (id: string) => {
 	if (qi >= 0) queue.splice(qi, 1);
 	controllers.get(id)?.abort();
 	jobs.delete(id);
+	dbDeleteJob(id);
 	fs.rmSync(dirOf(id), {recursive: true, force: true});
 };
 
 export const clearAllJobs = () => {
 	for (const id of [...jobs.keys()]) deleteJob(id);
+	dbClearJobs();
 };
 
 export const startJob = (

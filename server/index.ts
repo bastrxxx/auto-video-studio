@@ -1,10 +1,10 @@
 import express from 'express';
 import multer from 'multer';
-import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import {PATHS, PORT} from './config.js';
+import {dbGetSetting, dbSetSetting, dbStats, dbVerifyToken, dbVerifyUser} from './db.js';
 import {addClips, cancelJob, clearAllJobs, createJob, deleteJob, getJob, getTimeline, jobDetail, listJobs, publicJob, removeClip, saveTimeline, startJob} from './jobs.js';
 import {downloadWhisperModel, type WhisperModel} from '@remotion/install-whisper-cpp';
 import {buildWebBundle} from './build-web.js';
@@ -29,11 +29,7 @@ app.use((req, res, next) => {
 	next();
 });
 
-// ---- Auth (user: sts, pass: 1111)
-const AUTH_USER = 'sts';
-const AUTH_PASS = '1111';
-const AUTH_TOKEN = crypto.createHash('sha256').update(`avs-auth:${AUTH_USER}:${AUTH_PASS}`).digest('hex');
-
+// ---- Auth (stored in SQLite table `users`, seeded with user: sts, pass: 1111)
 const parseCookies = (cookieHeader?: string): Record<string, string> => {
 	const out: Record<string, string> = {};
 	if (!cookieHeader) return out;
@@ -44,25 +40,32 @@ const parseCookies = (cookieHeader?: string): Record<string, string> => {
 	return out;
 };
 
-const isAuthed = (req: express.Request): boolean => {
+const getAuthedUser = (req: express.Request): string | null => {
 	const cookies = parseCookies(req.headers.cookie);
-	if (cookies.avs_token === AUTH_TOKEN) return true;
+	if (cookies.avs_token) {
+		const c = dbVerifyToken(cookies.avs_token);
+		if (c.ok && c.user) return c.user;
+	}
 	const authHeader = req.headers.authorization || '';
-	if (authHeader === `Bearer ${AUTH_TOKEN}`) return true;
-	return false;
+	if (authHeader.startsWith('Bearer ')) {
+		const c = dbVerifyToken(authHeader.slice(7).trim());
+		if (c.ok && c.user) return c.user;
+	}
+	return null;
 };
 
 app.get('/api/auth', (req, res) => {
-	const ok = isAuthed(req);
-	res.json({ok: true, authenticated: ok, user: ok ? AUTH_USER : null});
+	const user = getAuthedUser(req);
+	res.json({ok: true, authenticated: Boolean(user), user});
 });
 
 app.post('/api/login', (req, res) => {
 	const username = String(req.body?.username || '').trim();
 	const password = String(req.body?.password || '').trim();
-	if (username === AUTH_USER && password === AUTH_PASS) {
-		res.setHeader('Set-Cookie', `avs_token=${AUTH_TOKEN}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000`);
-		res.json({ok: true, user: AUTH_USER, token: AUTH_TOKEN});
+	const auth = dbVerifyUser(username, password);
+	if (auth.ok && auth.token && auth.user) {
+		res.setHeader('Set-Cookie', `avs_token=${auth.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000`);
+		res.json({ok: true, user: auth.user, token: auth.token});
 		return;
 	}
 	res.status(401).json({ok: false, error: 'Sai tài khoản hoặc mật khẩu'});
@@ -74,7 +77,7 @@ app.post('/api/logout', (_req, res) => {
 });
 
 app.use('/api', (req, res, next) => {
-	if (isAuthed(req)) return next();
+	if (getAuthedUser(req)) return next();
 	res.status(401).json({ok: false, authRequired: true, error: 'Vui lòng đăng nhập để sử dụng'});
 });
 
@@ -105,8 +108,24 @@ app.get(
 		sfx: fs.existsSync(PATHS.sfx) ? fs.readdirSync(PATHS.sfx).length : 0,
 		styles: Object.values(STYLES).map((s) => ({id: s.id, name: s.name, about: s.about, accent: s.accent, font: s.caption.font})),
 		defaults: DEFAULT_OPTIONS,
+		savedOptions: dbGetSetting('user_options'),
+		db: dbStats(),
 		serverGeminiKey: Boolean(process.env.GEMINI_API_KEY),
 	})),
+);
+
+app.get('/api/db', wrap(() => ({ok: true, db: dbStats()})));
+
+app.put(
+	'/api/settings',
+	wrap((req) => {
+		if (req.body?.options && typeof req.body.options === 'object') {
+			const {geminiKey, ...rest} = req.body.options;
+			const prev = dbGetSetting<Record<string, unknown>>('user_options') || {};
+			dbSetSetting('user_options', {...prev, ...rest, ...(geminiKey && geminiKey !== '••••' ? {geminiKey} : {})});
+		}
+		return {ok: true, db: dbStats()};
+	}),
 );
 
 app.post(

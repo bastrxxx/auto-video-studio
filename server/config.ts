@@ -9,6 +9,7 @@ export const WHISPER_VERSION = '1.5.5';
 
 export const PATHS = {
 	root: ROOT,
+	data: path.join(ROOT, 'data'),
 	web: path.join(ROOT, 'web'),
 	public: path.join(ROOT, 'public'),
 	sfx: path.join(ROOT, 'public', 'sfx'),
