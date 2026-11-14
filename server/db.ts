@@ -45,6 +45,15 @@ db.exec(`
 		PRIMARY KEY (job_id, name),
 		FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE
 	);
+
+	CREATE TABLE IF NOT EXISTS app_records (
+		app TEXT NOT NULL,
+		collection TEXT NOT NULL,
+		id TEXT NOT NULL,
+		data TEXT NOT NULL,
+		updated_at INTEGER NOT NULL,
+		PRIMARY KEY (app, collection, id)
+	);
 `);
 
 export const hashPassword = (username: string, password: string): string =>
@@ -217,6 +226,9 @@ export const dbStats = () => {
 	const jobsCount = (db.prepare(`SELECT COUNT(*) as c FROM jobs`).get() as {c: number}).c;
 	const docsCount = (db.prepare(`SELECT COUNT(*) as c FROM job_docs`).get() as {c: number}).c;
 	const settingsCount = (db.prepare(`SELECT COUNT(*) as c FROM settings`).get() as {c: number}).c;
+	const appRows = db.prepare(`SELECT app, COUNT(*) as c FROM app_records GROUP BY app`).all() as {app: string; c: number}[];
+	const apps: Record<string, number> = {'auto-video-studio': jobsCount};
+	for (const r of appRows) apps[r.app] = r.c;
 	let sizeBytes = 0;
 	try {
 		sizeBytes = fs.statSync(DB_PATH).size;
@@ -227,6 +239,54 @@ export const dbStats = () => {
 		jobs: jobsCount,
 		docs: docsCount,
 		settings: settingsCount,
+		apps,
 		sizeBytes,
 	};
 };
+
+// ---- Multi-App Universal Database Store (for Script Studio, Vlive PSD Studio, STS Voice Studio)
+const stmtListAppRecords = db.prepare(`SELECT id, data, updated_at FROM app_records WHERE app = ? AND collection = ? ORDER BY updated_at DESC`);
+const stmtGetAppRecord = db.prepare(`SELECT data, updated_at FROM app_records WHERE app = ? AND collection = ? AND id = ?`);
+const stmtUpsertAppRecord = db.prepare(`
+	INSERT INTO app_records (app, collection, id, data, updated_at)
+	VALUES (?, ?, ?, ?, ?)
+	ON CONFLICT(app, collection, id) DO UPDATE SET
+		data = excluded.data,
+		updated_at = excluded.updated_at
+`);
+const stmtDeleteAppRecord = db.prepare(`DELETE FROM app_records WHERE app = ? AND collection = ? AND id = ?`);
+const stmtClearAppCol = db.prepare(`DELETE FROM app_records WHERE app = ? AND collection = ?`);
+
+export const dbListAppRecords = <T = unknown>(app: string, collection: string): {id: string; data: T; updatedAt: number}[] => {
+	const rows = stmtListAppRecords.all(app, collection) as {id: string; data: string; updated_at: number}[];
+	const out: {id: string; data: T; updatedAt: number}[] = [];
+	for (const r of rows) {
+		try {
+			out.push({id: r.id, data: JSON.parse(r.data) as T, updatedAt: r.updated_at});
+		} catch {}
+	}
+	return out;
+};
+
+export const dbGetAppRecord = <T = unknown>(app: string, collection: string, id: string): T | null => {
+	const row = stmtGetAppRecord.get(app, collection, id) as {data: string} | undefined;
+	if (!row) return null;
+	try {
+		return JSON.parse(row.data) as T;
+	} catch {
+		return null;
+	}
+};
+
+export const dbPutAppRecord = (app: string, collection: string, id: string, data: unknown): void => {
+	stmtUpsertAppRecord.run(app, collection, String(id), JSON.stringify(data), Date.now());
+};
+
+export const dbDeleteAppRecord = (app: string, collection: string, id: string): void => {
+	stmtDeleteAppRecord.run(app, collection, String(id));
+};
+
+export const dbClearAppCollection = (app: string, collection: string): void => {
+	stmtClearAppCol.run(app, collection);
+};
+

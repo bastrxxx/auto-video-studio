@@ -3,6 +3,27 @@
 	"version": 2,
 	"buildCommand": "",
 	"outputDirectory": "docs",
-	"cleanUrls": true,
-	"trailingSlash": false
+	"trailingSlash": true,
+	"rewrites": [
+		{
+			"source": "/script-studio/login",
+			"destination": "/script-studio/index.html"
+		},
+		{
+			"source": "/script-studio/login/",
+			"destination": "/script-studio/index.html"
+		},
+		{
+			"source": "/script-studio/settings",
+			"destination": "/script-studio/index.html"
+		},
+		{
+			"source": "/script-studio/settings/",
+			"destination": "/script-studio/index.html"
+		},
+		{
+			"source": "/script-studio/p/:path*",
+			"destination": "/script-studio/index.html"
+		}
+	]
 }

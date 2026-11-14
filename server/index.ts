@@ -4,7 +4,18 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import {PATHS, PORT} from './config.js';
-import {dbGetSetting, dbSetSetting, dbStats, dbVerifyToken, dbVerifyUser} from './db.js';
+import {
+	dbClearAppCollection,
+	dbDeleteAppRecord,
+	dbGetAppRecord,
+	dbGetSetting,
+	dbListAppRecords,
+	dbPutAppRecord,
+	dbSetSetting,
+	dbStats,
+	dbVerifyToken,
+	dbVerifyUser,
+} from './db.js';
 import {addClips, cancelJob, clearAllJobs, createJob, deleteJob, getJob, getTimeline, jobDetail, listJobs, publicJob, removeClip, saveTimeline, startJob} from './jobs.js';
 import {downloadWhisperModel, type WhisperModel} from '@remotion/install-whisper-cpp';
 import {buildWebBundle} from './build-web.js';
@@ -74,6 +85,36 @@ app.post('/api/login', (req, res) => {
 app.post('/api/logout', (_req, res) => {
 	res.setHeader('Set-Cookie', 'avs_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
 	res.json({ok: true});
+});
+
+// ---- Multi-App SQLite Database Endpoints (/api/hub/db/:app/:collection)
+app.get('/api/hub/stats', (_req, res) => {
+	res.json({ok: true, db: dbStats()});
+});
+
+app.get('/api/hub/db/:app/:collection', (req, res) => {
+	const items = dbListAppRecords(req.params.app, req.params.collection);
+	res.json({ok: true, items, db: dbStats()});
+});
+
+app.get('/api/hub/db/:app/:collection/:id', (req, res) => {
+	const item = dbGetAppRecord(req.params.app, req.params.collection, req.params.id);
+	res.json({ok: true, item});
+});
+
+app.put('/api/hub/db/:app/:collection/:id', (req, res) => {
+	dbPutAppRecord(req.params.app, req.params.collection, req.params.id, req.body?.data ?? req.body);
+	res.json({ok: true, db: dbStats()});
+});
+
+app.delete('/api/hub/db/:app/:collection/:id', (req, res) => {
+	dbDeleteAppRecord(req.params.app, req.params.collection, req.params.id);
+	res.json({ok: true, db: dbStats()});
+});
+
+app.delete('/api/hub/db/:app/:collection', (req, res) => {
+	dbClearAppCollection(req.params.app, req.params.collection);
+	res.json({ok: true, db: dbStats()});
 });
 
 app.use('/api', (req, res, next) => {
@@ -225,6 +266,11 @@ app.use('/music', express.static(PATHS.music));
 app.use('/vendor/mediapipe', express.static(path.join(PATHS.root, 'node_modules', '@mediapipe', 'tasks-vision')));
 app.use('/models', express.static(path.join(PATHS.public, 'models')));
 app.use('/', express.static(PATHS.web));
+app.get('/script-studio/*', (_req, res) => {
+	const f = path.join(PATHS.web, 'script-studio', 'index.html');
+	if (fs.existsSync(f)) res.sendFile(f);
+	else res.status(404).end();
+});
 
 app.listen(PORT, '127.0.0.1', () => {
 	console.log(`\n  Auto Video Studio: http://localhost:${PORT}\n`);

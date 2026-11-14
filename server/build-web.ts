@@ -20,6 +20,11 @@ export const buildWebBundle = async () => {
 		define: {'process.env.NODE_ENV': '"production"'},
 		logLevel: 'error',
 	});
+	const vOut = path.join(PATHS.web, 'video-studio', 'build', 'player.js');
+	if (fs.existsSync(path.join(PATHS.web, 'video-studio'))) {
+		fs.mkdirSync(path.dirname(vOut), {recursive: true});
+		fs.copyFileSync(out, vOut);
+	}
 	return out;
 };
 

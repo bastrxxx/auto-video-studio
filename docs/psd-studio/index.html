@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0d1220" />
+  <title>Vlive PSD Studio</title>
+  <script>
+    // áp theme trước khi vẽ trang để không bị nháy (mặc định: Dark)
+    document.documentElement.dataset.theme = (function () { try { return localStorage.getItem('psdstudio-theme') || 'dark'; } catch (e) { return 'dark'; } })();
+  </script>
+  <link rel="icon" type="image/png" href="icon-64.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="locked">
+  <!-- ============ LOGIN GATE (BẮT BUỘC ĐĂNG NHẬP) ============ -->
+  <div class="login-gate" id="loginGate">
+    <div class="login-card" id="loginCard">
+      <div class="login-brand">
+        <img class="login-logo" src="logo.png" alt="Vlive" />
+        <span class="brand-tag">PSD Studio</span>
+      </div>
+      <h2 class="login-title">Đăng nhập hệ thống</h2>
+      <p class="login-sub">Vui lòng đăng nhập để sử dụng toàn bộ ứng dụng Vlive PSD Studio.</p>
+      <form id="loginForm" class="login-form" autocomplete="on" novalidate>
+        <div class="login-field">
+          <label for="loginUser">Tài khoản</label>
+          <div class="login-input-wrap">
+            <i data-ic="user"></i>
+            <input type="text" id="loginUser" name="username" placeholder="Nhập tài khoản..." autocomplete="username" spellcheck="false" required />
+          </div>
+        </div>
+        <div class="login-field">
+          <label for="loginPass">Mật khẩu</label>
+          <div class="login-input-wrap">
+            <i data-ic="lock"></i>
+            <input type="password" id="loginPass" name="password" placeholder="Nhập mật khẩu..." autocomplete="current-password" required />
+            <button type="button" class="icon-btn pass-toggle" id="loginPassShow" title="Hiện / ẩn mật khẩu" tabindex="-1"><i data-ic="eye"></i></button>
+          </div>
+        </div>
+        <div class="login-row">
+          <label class="check-line" style="margin:0"><input type="checkbox" id="loginRemember" checked /> Ghi nhớ đăng nhập</label>
+        </div>
+        <div class="login-error" id="loginError" hidden></div>
+        <button type="submit" class="btn primary lg block login-submit" id="loginSubmit">
+          <i data-ic="login"></i> <span>Đăng nhập</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============ TOP BAR ============ -->
+  <header class="topbar">
+    <div class="brand">
+      <img class="logo" src="logo.png" alt="Vlive" />
+      <span class="brand-tag">PSD Studio</span>
+    </div>
+    <div class="file-chip" id="fileInfo">Chưa mở file</div>
+    <div class="top-actions">
+      <label class="tbtn" title="Mở file PSD">
+        <i data-ic="open"></i><span>Mở PSD</span>
+        <input type="file" id="fileInput" accept=".psd,.psb" hidden />
+      </label>
+      <button class="tbtn" id="undoBtn" title="Hoàn tác (Ctrl+Z)" disabled><i data-ic="undo"></i><span>Hoàn tác</span></button>
+      <button class="tbtn" id="compareBtn" title="So sánh với ảnh gốc Photoshop" disabled><i data-ic="compare"></i><span id="compareLabel">Bản gốc</span></button>
+      <button class="tbtn only-tablet" id="propsToggle" title="Thuộc tính layer" disabled><i data-ic="sliders"></i><span>Thuộc tính</span></button>
+      <button class="tbtn ai-btn" id="aiBtn" title="AI chỉnh sửa ảnh / xóa nền (Gemini)" disabled><i data-ic="sparkle"></i><span>AI</span></button>
+      <button class="tbtn" id="exportBtn" title="Xuất PNG / JPG" disabled><i data-ic="export"></i><span>Xuất ảnh</span></button>
+      <button class="tbtn primary" id="savePsd" title="Lưu file PSD (Ctrl+S)" disabled><i data-ic="save"></i><span>Lưu PSD</span></button>
+      <button class="tbtn theme-btn" id="themeBtn" title="Đổi giao diện sáng / tối"><i data-ic="sun"></i></button>
+      <button class="tbtn logout-btn" id="logoutBtn" title="Đăng xuất (sts)"><i data-ic="logout"></i><span class="user-badge" id="userBadge">sts</span></button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <!-- ============ LAYERS ============ -->
+    <aside class="panel layers-panel sheet" id="layersPanel">
+      <div class="sheet-grip"></div>
+      <div class="panel-head">
+        <i data-ic="layers"></i>
+        <span class="panel-title">Layers</span>
+        <span class="count" id="layerCount"></span>
+        <button class="icon-btn sheet-close" data-close title="Đóng"><i data-ic="close"></i></button>
+      </div>
+      <div class="layer-tools">
+        <div class="search">
+          <i data-ic="search"></i>
+          <input type="search" id="layerSearch" placeholder="Tìm layer..." />
+        </div>
+        <button class="icon-btn" id="expandAll" title="Mở tất cả nhóm"><i data-ic="expand"></i></button>
+        <button class="icon-btn" id="collapseAll" title="Thu gọn tất cả nhóm"><i data-ic="collapse"></i></button>
+      </div>
+      <div class="layer-list" id="layerList">
+        <div class="empty-state small">Chưa có layer nào.<br />Hãy mở một file PSD.</div>
+      </div>
+    </aside>
+
+    <!-- ============ STAGE ============ -->
+    <section class="stage" id="stage">
+      <div class="dropzone" id="dropzone">
+        <div class="dz-card">
+          <div class="dz-icon"><i data-ic="upload"></i></div>
+          <h2>Mở file Photoshop</h2>
+          <p>Kéo thả file <b>.PSD / .PSB</b> vào đây hoặc chọn file từ máy.</p>
+          <label class="btn primary lg">
+            <i data-ic="open"></i> Chọn file PSD
+            <input type="file" id="fileInput2" accept=".psd,.psb" hidden />
+          </label>
+          <ul class="dz-features">
+            <li><i data-ic="layers"></i> Xem tất cả layer, nhóm, mask</li>
+            <li><i data-ic="image"></i> Đọc &amp; thay Smart Object JPG/PNG</li>
+            <li><i data-ic="export"></i> Xuất PNG, JPG, lưu lại PSD</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="canvas-wrap" id="canvasWrap" hidden>
+        <div class="canvas-holder" id="canvasHolder">
+          <canvas id="viewCanvas"></canvas>
+          <div class="sel-box" id="selBox" hidden></div>
+        </div>
+      </div>
+
+      <div class="badge-original" id="badgeOriginal" hidden>Đang xem ảnh gốc của Photoshop</div>
+
+      <!-- thanh thao tác nhanh cho layer đang chọn -->
+      <div class="ctxbar" id="ctxbar" hidden>
+        <div class="ctx-name" id="ctxName"></div>
+        <div class="ctx-actions">
+          <button class="cbtn" id="ctxText" title="Sửa chữ & font" hidden><i data-ic="text"></i><span>Sửa chữ</span></button>
+          <button class="cbtn" id="ctxReplace" title="Thay ảnh"><i data-ic="replace"></i><span>Thay ảnh</span></button>
+          <button class="cbtn ai" id="ctxAi" title="AI: xóa nền / sửa ảnh"><i data-ic="sparkle"></i><span>AI</span></button>
+          <button class="cbtn" id="ctxVisible" title="Ẩn / hiện"><i data-ic="eye"></i><span>Ẩn</span></button>
+          <button class="cbtn" id="ctxUp" title="Đưa lên"><i data-ic="up"></i></button>
+          <button class="cbtn" id="ctxDown" title="Đưa xuống"><i data-ic="down"></i></button>
+          <button class="cbtn hide-desktop" id="ctxProps" title="Chi tiết"><i data-ic="sliders"></i></button>
+          <button class="cbtn danger" id="ctxDelete" title="Xóa layer"><i data-ic="trash"></i></button>
+          <button class="cbtn ghost" id="ctxClose" title="Bỏ chọn"><i data-ic="close"></i></button>
+        </div>
+      </div>
+
+      <div class="zoombar" id="zoombar" hidden>
+        <div class="zoom-group">
+          <button class="icon-btn" id="zoomOut" title="Thu nhỏ"><i data-ic="minus"></i></button>
+          <button class="zoom-label" id="zoomLabel" title="Về 100%">100%</button>
+          <button class="icon-btn" id="zoomIn" title="Phóng to"><i data-ic="plus"></i></button>
+          <button class="icon-btn" id="zoomFit" title="Vừa khung"><i data-ic="fit"></i></button>
+        </div>
+        <div class="toggle-group">
+          <label class="chip"><input type="checkbox" id="showFx" checked /><span>Hiệu ứng</span></label>
+          <label class="chip"><input type="checkbox" id="showSel" checked /><span>Khung chọn</span></label>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PROPERTIES ============ -->
+    <aside class="panel props-panel sheet" id="propsPanel">
+      <div class="sheet-grip"></div>
+      <div class="panel-head">
+        <i data-ic="sliders"></i>
+        <span class="panel-title">Thuộc tính</span>
+        <button class="icon-btn sheet-close" data-close title="Đóng"><i data-ic="close"></i></button>
+      </div>
+      <div class="props" id="props"></div>
+    </aside>
+  </main>
+
+  <!-- ============ BOTTOM NAV (mobile) ============ -->
+  <nav class="bottom-nav" id="bottomNav">
+    <button class="nav-btn" id="navLayers"><i data-ic="layers"></i><span>Layers</span></button>
+    <button class="nav-btn" id="navProps"><i data-ic="sliders"></i><span>Thuộc tính</span></button>
+    <label class="nav-btn nav-main" for="fileInput"><i data-ic="open"></i><span>Mở</span></label>
+    <button class="nav-btn" id="navExport"><i data-ic="export"></i><span>Xuất</span></button>
+    <button class="nav-btn" id="navSave"><i data-ic="save"></i><span>Lưu PSD</span></button>
+  </nav>
+
+  <div class="backdrop" id="backdrop" hidden></div>
+
+  <!-- ============ EXPORT DIALOG ============ -->
+  <div class="modal" id="exportModal" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Xuất file</h3>
+        <button class="icon-btn" data-modal-close><i data-ic="close"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="label">Định dạng</div>
+        <div class="segmented" id="fmtSeg">
+          <button data-fmt="png" class="active"><b>PNG</b><small>Nền trong suốt</small></button>
+          <button data-fmt="jpg"><b>JPG</b><small>Dung lượng nhỏ</small></button>
+          <button data-fmt="psd"><b>PSD</b><small>Giữ layer</small></button>
+        </div>
+        <div id="scaleRow">
+          <div class="label">Kích thước</div>
+          <div class="segmented small" id="scaleSeg">
+            <button data-scale="0.5">50%</button>
+            <button data-scale="1" class="active">100%</button>
+            <button data-scale="2">200%</button>
+          </div>
+        </div>
+        <div id="qualityRow" hidden>
+          <div class="label">Chất lượng JPG <span id="jpgQualityVal">92%</span></div>
+          <input type="range" id="jpgQuality" min="10" max="100" value="92" />
+        </div>
+        <div class="export-info" id="exportInfo"></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" data-modal-close>Hủy</button>
+        <button class="btn primary" id="doExport"><i data-ic="export"></i> Xuất file</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ AI DIALOG ============ -->
+  <div class="modal" id="aiModal" hidden>
+    <div class="modal-card ai-card">
+      <div class="modal-head">
+        <h3 class="ai-title"><i data-ic="sparkle"></i> AI chỉnh sửa ảnh</h3>
+        <div class="head-actions">
+          <button class="icon-btn" id="aiOpenSettings" title="Cài đặt AI (API key, model)"><i data-ic="key"></i></button>
+          <button class="icon-btn" data-ai-close title="Đóng"><i data-ic="close"></i></button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="label">Áp dụng cho</div>
+        <div class="segmented small" id="aiTargetSeg">
+          <button data-target="layer">Layer đang chọn</button>
+          <button data-target="doc">Toàn bộ ảnh</button>
+        </div>
+        <div class="ai-target-info" id="aiTargetInfo"></div>
+
+        <div class="label">Chức năng</div>
+        <div class="segmented" id="aiTabs">
+          <button data-tab="bg"><i data-ic="scissors"></i><b>Xóa nền</b><small>Tách chủ thể, giữ ảnh gốc</small></button>
+          <button data-tab="edit"><i data-ic="wand"></i><b>Sửa bằng câu lệnh</b><small>Gemini Image</small></button>
+        </div>
+
+        <div id="aiTabBg">
+          <div class="label">Giữ lại <span class="opt">không bắt buộc</span></div>
+          <input type="text" id="aiSubject" class="ai-input" placeholder="vd: người, nhân vật, chiếc xe… (trống = tự nhận diện)" />
+          <label class="check-line"><input type="checkbox" id="aiBgFallback" checked /> Nếu không tách được thì tạo nền xanh bằng AI rồi tách</label>
+        </div>
+        <div id="aiTabEdit" hidden>
+          <div class="label">Câu lệnh</div>
+          <textarea id="aiPrompt" class="ai-input" rows="3" placeholder="Mô tả thay đổi bạn muốn, ví dụ: đổi nền thành bãi biển lúc hoàng hôn"></textarea>
+          <div class="chips" id="aiChips"></div>
+          <label class="check-line" id="aiKeepAlphaRow"><input type="checkbox" id="aiKeepAlpha" checked /> Giữ vùng trong suốt của layer</label>
+        </div>
+
+        <div class="ai-result" id="aiResult" hidden>
+          <div class="ai-compare">
+            <figure><div class="ai-img" id="aiBefore"></div><figcaption>Trước</figcaption></figure>
+            <figure><div class="ai-img" id="aiAfter"></div><figcaption>Sau</figcaption></figure>
+          </div>
+          <div class="hint" id="aiResultNote"></div>
+        </div>
+        <div class="ai-note"><i data-ic="key"></i><span id="aiNote">Dùng Gemini API key từ Google AI Studio.</span></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" data-ai-close>Đóng</button>
+        <button class="btn" id="aiRetry" hidden><i data-ic="refresh"></i> Làm lại</button>
+        <button class="btn primary" id="aiRun"><i data-ic="sparkle"></i> <span id="aiRunLabel">Xóa nền</span></button>
+        <button class="btn primary" id="aiApply" hidden><i data-ic="check"></i> Áp dụng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ AI SETTINGS ============ -->
+  <div class="modal" id="aiSettingsModal" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 class="ai-title"><i data-ic="key"></i> Cài đặt AI</h3>
+        <button class="icon-btn" data-ais-close><i data-ic="close"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="ai-explain">
+          <b>Về tài khoản Google AI Pro / Ultra:</b> Google không cho app bên ngoài dùng quota của gói Pro/Ultra.
+          App dùng cách chính thức là <b>Gemini API key</b>: đăng nhập <b>Google AI Studio</b> bằng tài khoản Google của bạn, tạo API key rồi dán vào ô bên dưới.
+          Chi phí tính theo lượt dùng trên tài khoản AI Studio của key (có hạn mức miễn phí tùy model).
+        </div>
+        <a class="btn soft block" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener"><i data-ic="key"></i> Mở Google AI Studio để lấy API key ↗</a>
+        <div class="label">Gemini API key</div>
+        <div class="key-row">
+          <input type="password" id="aiKey" class="ai-input" placeholder="AIza…" autocomplete="off" spellcheck="false" />
+          <button class="icon-btn" id="aiKeyShow" title="Hiện / ẩn key"><i data-ic="eye"></i></button>
+        </div>
+        <div class="font-status" id="aiKeyStatus" hidden></div>
+        <div class="label">Model sửa ảnh</div>
+        <select id="aiImageModel" class="full"></select>
+        <div class="label">Model tách nền (segmentation)</div>
+        <select id="aiSegModel" class="full"></select>
+        <div class="hint">API key được lưu cục bộ và chỉ gửi trực tiếp tới máy chủ của Google.</div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn danger" id="aiKeyDelete" hidden>Xóa key</button>
+        <button class="btn" data-ais-close>Đóng</button>
+        <button class="btn primary" id="aiKeySave"><i data-ic="check"></i> Lưu &amp; kiểm tra</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay" hidden>
+    <div class="loader-card">
+      <div class="spinner"></div>
+      <div id="overlayText">Đang xử lý...</div>
+    </div>
+  </div>
+  <div class="toast" id="toast" hidden></div>
+
+  <input type="file" id="replaceInput" accept="image/*" hidden />
+  <input type="file" id="fontFileInput" accept=".ttf,.otf,.woff,.woff2" multiple hidden />
+
+  <script src="../shared-nav.js"></script>
+  <script src="ag-psd.js"></script>
+  <script src="app.js"></script>
+  <script src="db-engine.js"></script>
+</body>
+</html>
