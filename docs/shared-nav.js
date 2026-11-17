@@ -499,6 +499,14 @@
 		}
 		fav.href = `${root}/icon.png`;
 
+		// Ensure Manrope Google Font is loaded in all Studio apps
+		if (!document.querySelector('link[href*="family=Manrope"]')) {
+			const fontLink = document.createElement('link');
+			fontLink.rel = 'stylesheet';
+			fontLink.href = 'https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap';
+			document.head.appendChild(fontLink);
+		}
+
 		const style = document.createElement('style');
 		style.textContent = `
 			:root {
@@ -510,6 +518,10 @@
 				--card: rgba(24, 24, 28, 0.58) !important;
 				--accent: #2C368A !important;
 				--blue: #2C368A !important;
+				--font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+			}
+			body, button, input, select, textarea, .app, .shell, .workspace {
+				font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
 			}
 			body {
 				background:
@@ -546,7 +558,7 @@
 				-webkit-backdrop-filter: blur(32px) saturate(190%);
 				border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 				box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.18), 0 10px 30px rgba(0, 0, 0, 0.5);
-				font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", Roboto, sans-serif;
+				font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 				font-size: 12px;
 				color: #FAFAFA;
 			}
