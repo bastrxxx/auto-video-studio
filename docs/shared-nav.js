@@ -645,8 +645,7 @@
 		bar.id = 'sts-global-hub-bar';
 		bar.innerHTML = `
 			<div class="sgh-left">
-				<a class="sgh-hub-btn" href="${root}/" title="Quay về trang chủ chọn ứng dụng Vlive Studio Hub">
-					<img class="sgh-brand-icon" src="${root}/icon.png" alt="Vlive" />
+				<a class="sgh-hub-btn" href="${root}/" title="Quay về trang chủ chọn ứng dụng Vlive Studio Hub" style="padding:5px 14px">
 					<img class="sgh-brand-logo" src="${root}/logo.png" alt="Vlive" />
 					<span>Studio Hub</span>
 				</a>

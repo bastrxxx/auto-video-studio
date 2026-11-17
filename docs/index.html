@@ -93,23 +93,21 @@
 			margin-bottom: 22px;
 			position: relative;
 		}
-		.brand-app-icon {
-			width: 48px;
-			height: 48px;
-			border-radius: 13px;
-			object-fit: cover;
-			box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.14);
+		.brand-col {
+			display: flex;
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 6px;
 		}
 		.brand-logo-img {
-			height: 30px;
+			height: 32px;
 			width: auto;
 			object-fit: contain;
 			display: block;
 		}
 		.brand-sub {
-			font-size: 12px;
+			font-size: 12.5px;
 			color: var(--muted);
-			margin-top: 3px;
 		}
 		.field {
 			display: flex;
@@ -328,34 +326,27 @@
 			position: relative;
 			width: 54px;
 			height: 54px;
-			border-radius: 15px;
-			padding: 3px;
-			background: linear-gradient(145deg, rgba(255, 255, 255, 0.22), rgba(44, 54, 138, 0.45));
-			box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+			border-radius: 16px;
+			background: linear-gradient(145deg, rgba(255, 255, 255, 0.14) 0%, rgba(44, 54, 138, 0.55) 55%, rgba(20, 24, 58, 0.85) 100%);
+			border: 1px solid rgba(255, 255, 255, 0.22);
+			box-shadow:
+				inset 0 1px 0 0 rgba(255, 255, 255, 0.35),
+				0 10px 24px -4px rgba(0, 0, 0, 0.55),
+				0 0 20px -4px rgba(44, 54, 138, 0.5);
 			display: flex;
 			align-items: center;
 			justify-content: center;
+			color: #FFFFFF;
 		}
-		.app-icon-wrap img {
-			width: 100%;
-			height: 100%;
-			border-radius: 12px;
-			object-fit: cover;
-		}
-		.app-badge-glyph {
-			position: absolute;
-			right: -5px;
-			bottom: -5px;
-			width: 24px;
-			height: 24px;
-			border-radius: 8px;
-			background: linear-gradient(180deg, #3946AE, #2C368A);
-			border: 1px solid rgba(255, 255, 255, 0.28);
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			font-size: 12px;
-			box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+		.app-icon-wrap svg {
+			width: 26px;
+			height: 26px;
+			stroke: #FFFFFF;
+			stroke-width: 1.9;
+			fill: none;
+			stroke-linecap: round;
+			stroke-linejoin: round;
+			filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
 		}
 		.db-pill {
 			display: inline-flex;
@@ -461,8 +452,7 @@
 	<div class="login-gate" id="hubLoginGate">
 		<form class="login-card ios-glass" id="hubLoginForm" autocomplete="on">
 			<div class="brand-row">
-				<img class="brand-app-icon" src="./icon.png" alt="Vlive Icon" />
-				<div>
+				<div class="brand-col">
 					<img class="brand-logo-img" src="./logo.png" alt="Vlive Studio" />
 					<div class="brand-sub">Đăng nhập 1 lần — Sử dụng toàn bộ hệ sinh thái Studio</div>
 				</div>
@@ -484,10 +474,9 @@
 	<div class="hub-wrap hidden" id="hubMain">
 		<header class="hub-top ios-glass">
 			<div class="brand-row" style="margin-bottom:0">
-				<img class="brand-app-icon" src="./icon.png" alt="Vlive Icon" style="width:40px;height:40px;border-radius:11px" />
-				<div>
-					<img class="brand-logo-img" src="./logo.png" alt="Vlive Studio" style="height:24px" />
-					<div class="brand-sub" style="margin-top:2px">Hệ sinh thái 4 bộ công cụ sản xuất nội dung &amp; Cơ sở dữ liệu đồng bộ</div>
+				<div class="brand-col" style="gap:3px">
+					<img class="brand-logo-img" src="./logo.png" alt="Vlive Studio" style="height:26px" />
+					<div class="brand-sub">Hệ sinh thái 4 bộ công cụ sản xuất nội dung &amp; Cơ sở dữ liệu đồng bộ</div>
 				</div>
 			</div>
 			<div class="hub-top-right">
@@ -499,8 +488,7 @@
 
 		<section class="hero">
 			<div class="hero-tag">
-				<img src="./icon.png" alt="" style="width:16px;height:16px;border-radius:4px" />
-				<span>Vlive Studio Suite · iOS 26 Liquid Glass · Real-Time Database</span>
+				<span>✦ Vlive Studio Suite · iOS 26 Liquid Glass · Real-Time Database</span>
 			</div>
 			<h2>Chọn ứng dụng Studio để bắt đầu làm việc</h2>
 			<p>Mọi kịch bản, timeline phụ đề video, file thiết kế Photoshop (.PSD) và lời thoại AI đều được lưu và đồng bộ liên tục vào Database.</p>
@@ -511,9 +499,13 @@
 			<article class="studio-card ios-glass">
 				<div>
 					<div class="card-top">
-						<div class="app-icon-wrap">
-							<img src="./icon.png" alt="Script Studio" />
-							<span class="app-badge-glyph">📜</span>
+						<div class="app-icon-wrap" title="Script Studio">
+							<svg viewBox="0 0 24 24">
+								<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+								<polyline points="14 2 14 8 20 8"></polyline>
+								<line x1="8" y1="13" x2="16" y2="13"></line>
+								<line x1="8" y1="17" x2="13" y2="17"></line>
+							</svg>
 						</div>
 						<span class="db-pill" id="count-script-studio">🗄 DB sẵn sàng</span>
 					</div>
@@ -537,9 +529,12 @@
 			<article class="studio-card ios-glass">
 				<div>
 					<div class="card-top">
-						<div class="app-icon-wrap">
-							<img src="./icon.png" alt="Auto Video Studio" />
-							<span class="app-badge-glyph">🎬</span>
+						<div class="app-icon-wrap" title="Auto Video Studio">
+							<svg viewBox="0 0 24 24">
+								<rect x="2" y="4" width="20" height="16" rx="3"></rect>
+								<polygon points="10 9 15 12 10 15 10 9" fill="currentColor"></polygon>
+								<line x1="2" y1="8" x2="22" y2="8"></line>
+							</svg>
 						</div>
 						<span class="db-pill" id="count-auto-video-studio">🗄 DB sẵn sàng</span>
 					</div>
@@ -563,9 +558,12 @@
 			<article class="studio-card ios-glass">
 				<div>
 					<div class="card-top">
-						<div class="app-icon-wrap">
-							<img src="./icon.png" alt="Vlive PSD Studio" />
-							<span class="app-badge-glyph">🎨</span>
+						<div class="app-icon-wrap" title="Vlive PSD Studio">
+							<svg viewBox="0 0 24 24">
+								<polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+								<polyline points="2 12 12 17 22 12"></polyline>
+								<polyline points="2 17 12 22 22 17"></polyline>
+							</svg>
 						</div>
 						<span class="db-pill" id="count-vlive-psd-studio">🗄 DB sẵn sàng</span>
 					</div>
@@ -589,9 +587,13 @@
 			<article class="studio-card ios-glass">
 				<div>
 					<div class="card-top">
-						<div class="app-icon-wrap">
-							<img src="./icon.png" alt="STS Voice Studio" />
-							<span class="app-badge-glyph">🎙️</span>
+						<div class="app-icon-wrap" title="STS Voice Studio">
+							<svg viewBox="0 0 24 24">
+								<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
+								<path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+								<line x1="12" y1="19" x2="12" y2="22"></line>
+								<line x1="8" y1="22" x2="16" y2="22"></line>
+							</svg>
 						</div>
 						<span class="db-pill" id="count-sts-voice-studio">🗄 DB sẵn sàng</span>
 					</div>
