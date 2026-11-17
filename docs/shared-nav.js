@@ -488,8 +488,50 @@
 		if (document.getElementById('sts-global-hub-bar')) return;
 
 		const root = getHubRoot().replace(/\/+$/, '');
+
+		// Ensure favicon uses the official app icon
+		let fav = document.querySelector('link[rel="icon"]');
+		if (!fav) {
+			fav = document.createElement('link');
+			fav.rel = 'icon';
+			fav.type = 'image/png';
+			document.head.appendChild(fav);
+		}
+		fav.href = `${root}/icon.png`;
+
 		const style = document.createElement('style');
 		style.textContent = `
+			:root {
+				--brand-primary: #2C368A;
+				--brand-primary-light: #3E4CC0;
+				--brand-glow: rgba(44, 54, 138, 0.45);
+				--bg: #09090B !important;
+				--bg2: #121215 !important;
+				--card: rgba(24, 24, 28, 0.58) !important;
+				--accent: #2C368A !important;
+				--blue: #2C368A !important;
+			}
+			body {
+				background:
+					radial-gradient(600px circle at 15% 10%, rgba(44, 54, 138, 0.22), transparent 60%),
+					radial-gradient(500px circle at 85% 15%, rgba(44, 54, 138, 0.14), transparent 58%),
+					#09090B !important;
+				color: #FAFAFA;
+			}
+			/* iOS 26 Liquid Glass surfaces across all 4 Studio apps */
+			.card, .panel, .topbar, header.top, .sidebar, .login-card, .modal-card, .ed-side, .ed-tl, .view-tabs {
+				background: linear-gradient(145deg, rgba(255, 255, 255, 0.07) 0%, rgba(22, 22, 26, 0.62) 48%, rgba(14, 14, 18, 0.76) 100%) !important;
+				backdrop-filter: blur(28px) saturate(185%) !important;
+				-webkit-backdrop-filter: blur(28px) saturate(185%) !important;
+				border: 1px solid rgba(255, 255, 255, 0.11) !important;
+				box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.18), 0 18px 42px -12px rgba(0, 0, 0, 0.6) !important;
+			}
+			button.primary, .btn.primary, .btn.blue, .tbtn.primary, .view-tab.on, .tab.active {
+				background: linear-gradient(180deg, #3B49B8 0%, #2C368A 100%) !important;
+				border-color: rgba(255, 255, 255, 0.22) !important;
+				box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.3), 0 8px 22px -4px rgba(44, 54, 138, 0.65) !important;
+				color: #FFFFFF !important;
+			}
 			#sts-global-hub-bar {
 				position: sticky;
 				top: 0;
@@ -498,13 +540,15 @@
 				align-items: center;
 				justify-content: space-between;
 				gap: 10px;
-				padding: 6px 14px;
-				background: linear-gradient(90deg, #090d16 0%, #111827 50%, #090d16 100%);
-				border-bottom: 1px solid rgba(99, 102, 241, 0.28);
-				font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+				padding: 7px 16px;
+				background: linear-gradient(180deg, rgba(28, 28, 34, 0.72) 0%, rgba(14, 14, 18, 0.82) 100%);
+				backdrop-filter: blur(32px) saturate(190%);
+				-webkit-backdrop-filter: blur(32px) saturate(190%);
+				border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+				box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.18), 0 10px 30px rgba(0, 0, 0, 0.5);
+				font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", Roboto, sans-serif;
 				font-size: 12px;
-				color: #e2e8f0;
-				box-shadow: 0 2px 12px rgba(0,0,0,0.35);
+				color: #FAFAFA;
 			}
 			#sts-global-hub-bar .sgh-left,
 			#sts-global-hub-bar .sgh-center,
@@ -516,55 +560,71 @@
 			}
 			#sts-global-hub-bar a {
 				text-decoration: none;
-				color: #cbd5e1;
-				padding: 4px 10px;
-				border-radius: 7px;
+				color: #D4D4D8;
+				padding: 5px 12px;
+				border-radius: 999px;
 				font-weight: 600;
-				transition: all 0.15s ease;
+				transition: all 0.16s ease;
 				display: inline-flex;
 				align-items: center;
-				gap: 5px;
+				gap: 6px;
 				border: 1px solid transparent;
 			}
 			#sts-global-hub-bar a:hover {
-				color: #fff;
+				color: #FFFFFF;
 				background: rgba(255, 255, 255, 0.08);
+				border-color: rgba(255, 255, 255, 0.14);
 			}
 			#sts-global-hub-bar a.sgh-hub-btn {
-				background: rgba(99, 102, 241, 0.18);
-				border-color: rgba(99, 102, 241, 0.4);
-				color: #a5b4fc;
+				background: rgba(255, 255, 255, 0.06);
+				border-color: rgba(255, 255, 255, 0.15);
+				box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.16);
+				color: #FAFAFA;
+				padding: 4px 12px 4px 6px;
+			}
+			#sts-global-hub-bar .sgh-brand-icon {
+				width: 22px;
+				height: 22px;
+				border-radius: 6px;
+				object-fit: cover;
+			}
+			#sts-global-hub-bar .sgh-brand-logo {
+				height: 15px;
+				width: auto;
+				object-fit: contain;
 			}
 			#sts-global-hub-bar a.sgh-app.active {
-				background: linear-gradient(135deg, #6366f1, #8b5cf6);
-				color: #fff;
-				box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+				background: linear-gradient(180deg, #3B49B8 0%, #2C368A 100%);
+				border-color: rgba(255, 255, 255, 0.24);
+				color: #FFFFFF;
+				box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.32), 0 4px 14px rgba(44, 54, 138, 0.65);
 			}
 			#sts-global-hub-bar .sgh-db-pill {
 				font-size: 11px;
-				padding: 3px 9px;
+				padding: 4px 11px;
 				border-radius: 999px;
-				background: rgba(16, 185, 129, 0.14);
-				border: 1px solid rgba(16, 185, 129, 0.35);
-				color: #34d399;
+				background: rgba(255, 255, 255, 0.055);
+				border: 1px solid rgba(255, 255, 255, 0.14);
+				box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.14);
+				color: #E4E4E7;
 				font-weight: 600;
 				display: inline-flex;
 				align-items: center;
-				gap: 5px;
+				gap: 6px;
 			}
 			#sts-global-hub-bar .sgh-sync-btn {
 				font-size: 11px;
-				padding: 3px 9px;
+				padding: 4px 11px;
 				border-radius: 999px;
-				background: rgba(59, 130, 246, 0.16);
-				border: 1px solid rgba(59, 130, 246, 0.38);
-				color: #93c5fd;
+				background: linear-gradient(180deg, #3B49B8 0%, #2C368A 100%);
+				border: 1px solid rgba(255, 255, 255, 0.22);
+				box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.28);
+				color: #FFFFFF;
 				font-weight: 600;
 				cursor: pointer;
 			}
 			#sts-global-hub-bar .sgh-sync-btn:hover {
-				background: rgba(59, 130, 246, 0.28);
-				color: #fff;
+				filter: brightness(1.12);
 			}
 			@keyframes sghPulse {
 				0%, 100% { opacity: 1; }
@@ -574,7 +634,7 @@
 				width: 7px;
 				height: 7px;
 				border-radius: 50%;
-				background: #10b981;
+				background: #34D399;
 				display: inline-block;
 				animation: sghPulse 2s infinite;
 			}
@@ -585,7 +645,11 @@
 		bar.id = 'sts-global-hub-bar';
 		bar.innerHTML = `
 			<div class="sgh-left">
-				<a class="sgh-hub-btn" href="${root}/" title="Quay về trang chủ chọn ứng dụng Studio">🏠 Chọn Dự Án (Studio Hub)</a>
+				<a class="sgh-hub-btn" href="${root}/" title="Quay về trang chủ chọn ứng dụng Vlive Studio Hub">
+					<img class="sgh-brand-icon" src="${root}/icon.png" alt="Vlive" />
+					<img class="sgh-brand-logo" src="${root}/logo.png" alt="Vlive" />
+					<span>Studio Hub</span>
+				</a>
 			</div>
 			<div class="sgh-center">
 				<a class="sgh-app ${cur === 'script-studio' ? 'active' : ''}" href="${root}/script-studio/">📜 Script Studio</a>
