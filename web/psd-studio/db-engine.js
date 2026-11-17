@@ -297,6 +297,11 @@
 		openDbModal,
 	};
 
+	window.addEventListener('sts-db-remote-updated', (e) => {
+		const apps = e.detail?.apps || [];
+		if (!apps.length || apps.includes(APP)) renderDbViews().catch(() => {});
+	});
+
 	if (document.readyState === 'loading') {
 		document.addEventListener('DOMContentLoaded', injectUi);
 	} else {

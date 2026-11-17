@@ -1,26 +1,48 @@
-// STS Unified Studio — Shared Navigation Bar, Single Sign-On (sts / 1111), and Universal Database Engine (IndexedDB + SQLite)
+// Unified Studio Hub — Real-Time Auto-Sync Database (IndexedDB + Cloud API + SQLite) & Global App Switcher
 (() => {
 	const IDB_NAME = 'STSUnifiedStudioDB';
 	const IDB_VER = 1;
-	const STORES = ['records', 'blobs'];
-
 	let dbPromise = null;
+
+	const bc = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('sts_studio_realtime_v1') : null;
+
 	function openUnifiedIdb() {
 		if (dbPromise) return dbPromise;
 		dbPromise = new Promise((resolve, reject) => {
 			const req = indexedDB.open(IDB_NAME, IDB_VER);
 			req.onupgradeneeded = () => {
 				const db = req.result;
-				for (const s of STORES) {
-					if (!db.objectStoreNames.contains(s)) {
-						db.createObjectStore(s, {keyPath: 'pk'});
-					}
+				if (!db.objectStoreNames.contains('records')) {
+					const st = db.createObjectStore('records', {keyPath: 'pk'});
+					st.createIndex('by_app_col', ['app', 'collection'], {unique: false});
+				}
+				if (!db.objectStoreNames.contains('blobs')) {
+					db.createObjectStore('blobs', {keyPath: 'pk'});
 				}
 			};
 			req.onsuccess = () => resolve(req.result);
 			req.onerror = () => reject(req.error);
 		});
 		return dbPromise;
+	}
+
+	async function idbGetAll(storeName) {
+		try {
+			const db = await openUnifiedIdb();
+			return await new Promise((resolve) => {
+				const tx = db.transaction(storeName, 'readonly');
+				const req = tx.objectStore(storeName).getAll();
+				req.onsuccess = () => resolve(req.result || []);
+				req.onerror = () => resolve([]);
+			});
+		} catch {
+			return [];
+		}
+	}
+
+	async function idbGetAllByPrefix(storeName, prefix) {
+		const all = await idbGetAll(storeName);
+		return prefix ? all.filter((r) => String(r.pk || '').startsWith(prefix)) : all;
 	}
 
 	async function idbGet(storeName, pk) {
@@ -34,23 +56,6 @@
 			});
 		} catch {
 			return null;
-		}
-	}
-
-	async function idbGetAllByPrefix(storeName, prefix) {
-		try {
-			const db = await openUnifiedIdb();
-			return await new Promise((resolve) => {
-				const tx = db.transaction(storeName, 'readonly');
-				const req = tx.objectStore(storeName).getAll();
-				req.onsuccess = () => {
-					const all = req.result || [];
-					resolve(prefix ? all.filter((x) => String(x.pk || '').startsWith(prefix)) : all);
-				};
-				req.onerror = () => resolve([]);
-			});
-		} catch {
-			return [];
 		}
 	}
 
@@ -78,30 +83,52 @@
 		} catch {}
 	}
 
-	// Optional sync to local SQLite backend (http://localhost:8790/api/hub/db/...)
-	let sqliteBase = null;
-	async function detectSqliteBackend() {
-		if (sqliteBase !== null) return sqliteBase;
-		const candidates = [];
-		if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') candidates.push('');
-		candidates.push('http://localhost:8790');
-		for (const base of candidates) {
+	// Discover all active backend endpoints (Vercel Cloud API '' and/or Local SQLite 'http://localhost:8790')
+	let backendsCache = null;
+	let lastDetectAt = 0;
+
+	async function detectBackends(force = false) {
+		if (!force && backendsCache && Date.now() - lastDetectAt < 15000) return backendsCache;
+		lastDetectAt = Date.now();
+		const candidates = [''];
+		const custom = localStorage.getItem('sts_hub_backend');
+		if (custom) candidates.push(custom.replace(/\/+$/, ''));
+		if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+			candidates.push('http://localhost:8790');
+		}
+		const active = [];
+		for (const base of [...new Set(candidates)]) {
 			try {
 				const ctrl = new AbortController();
-				const to = setTimeout(() => ctrl.abort(), 1200);
+				const to = setTimeout(() => ctrl.abort(), 1400);
 				const r = await fetch(`${base}/api/hub/stats`, {signal: ctrl.signal});
 				clearTimeout(to);
-				if (r.ok) {
-					sqliteBase = base;
-					return sqliteBase;
+				const ct = r.headers.get('content-type') || '';
+				if (r.ok && ct.includes('application/json')) {
+					active.push(base);
 				}
 			} catch {}
 		}
-		sqliteBase = false;
-		return false;
+		backendsCache = active;
+		return active;
 	}
 
+	function unwrapRecord(rec) {
+		const d = rec.data;
+		if (d && typeof d === 'object' && !Array.isArray(d)) {
+			return {...d, id: rec.id, data: d, updatedAt: rec.updatedAt};
+		}
+		return {id: rec.id, data: d, value: d, updatedAt: rec.updatedAt};
+	}
+
+	let lastSyncTime = Date.now();
+	let isSyncing = false;
+
 	const STS_DB = {
+		getLastSyncTime() {
+			return lastSyncTime;
+		},
+
 		async list(app, collection) {
 			const prefix = `${app}:${collection}:`;
 			const local = await idbGetAllByPrefix('records', prefix);
@@ -109,8 +136,8 @@
 			for (const item of local) {
 				byId.set(String(item.id), item);
 			}
-			const base = await detectSqliteBackend();
-			if (base !== false) {
+			const backends = await detectBackends();
+			for (const base of backends) {
 				try {
 					const r = await fetch(`${base}/api/hub/db/${encodeURIComponent(app)}/${encodeURIComponent(collection)}`);
 					if (r.ok) {
@@ -124,6 +151,7 @@
 									collection,
 									id: String(row.id),
 									data: row.data,
+									_deleted: Boolean(row._deleted),
 									updatedAt: row.updatedAt || Date.now(),
 								};
 								byId.set(String(row.id), rec);
@@ -134,57 +162,154 @@
 				} catch {}
 			}
 			return [...byId.values()]
+				.filter((x) => !x._deleted && x.data !== null && x.data !== undefined)
 				.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
-				.map((x) => ({id: x.id, data: x.data, updatedAt: x.updatedAt}));
+				.map(unwrapRecord);
 		},
 
 		async get(app, collection, id) {
 			const pk = `${app}:${collection}:${id}`;
-			const local = await idbGet('records', pk);
-			if (local) return local.data;
-			const base = await detectSqliteBackend();
-			if (base !== false) {
+			let best = await idbGet('records', pk);
+			const backends = await detectBackends();
+			for (const base of backends) {
 				try {
 					const r = await fetch(`${base}/api/hub/db/${encodeURIComponent(app)}/${encodeURIComponent(collection)}/${encodeURIComponent(id)}`);
 					if (r.ok) {
 						const j = await r.json();
 						if (j.item !== null && j.item !== undefined) {
-							await idbPut('records', {pk, app, collection, id: String(id), data: j.item, updatedAt: Date.now()});
-							return j.item;
+							const remoteTs = Number(j.updatedAt) || Date.now();
+							if (!best || remoteTs > (best.updatedAt || 0)) {
+								best = {pk, app, collection, id: String(id), data: j.item, _deleted: false, updatedAt: remoteTs};
+								await idbPut('records', best);
+							}
 						}
 					}
 				} catch {}
 			}
-			return null;
+			if (!best || best._deleted) return null;
+			return best.data;
+		},
+
+		async getWithMeta(app, collection, id) {
+			const pk = `${app}:${collection}:${id}`;
+			const rec = await idbGet('records', pk);
+			if (!rec || rec._deleted) return null;
+			return {data: rec.data, updatedAt: rec.updatedAt || 0};
 		},
 
 		async put(app, collection, id, data) {
 			const pk = `${app}:${collection}:${id}`;
 			const updatedAt = Date.now();
-			await idbPut('records', {pk, app, collection, id: String(id), data, updatedAt});
-			const base = await detectSqliteBackend();
-			if (base !== false) {
+			const rec = {pk, app, collection, id: String(id), data, _deleted: false, updatedAt};
+			await idbPut('records', rec);
+			lastSyncTime = updatedAt;
+			const backends = await detectBackends();
+			for (const base of backends) {
 				fetch(`${base}/api/hub/db/${encodeURIComponent(app)}/${encodeURIComponent(collection)}/${encodeURIComponent(id)}`, {
 					method: 'PUT',
 					headers: {'Content-Type': 'application/json'},
-					body: JSON.stringify({data}),
+					body: JSON.stringify({data, updatedAt}),
 				}).catch(() => {});
 			}
-			window.dispatchEvent(new CustomEvent('sts-db-updated', {detail: {app, collection, id}}));
+			try {
+				bc?.postMessage({type: 'put', app, collection, id: String(id), updatedAt});
+			} catch {}
+			window.dispatchEvent(new CustomEvent('sts-db-updated', {detail: {app, collection, id: String(id), updatedAt}}));
 			return data;
 		},
 
 		async delete(app, collection, id) {
 			const pk = `${app}:${collection}:${id}`;
-			await idbDelete('records', pk);
+			const updatedAt = Date.now();
+			await idbPut('records', {pk, app, collection, id: String(id), data: null, _deleted: true, updatedAt});
 			await idbDelete('blobs', pk);
-			const base = await detectSqliteBackend();
-			if (base !== false) {
+			lastSyncTime = updatedAt;
+			const backends = await detectBackends();
+			for (const base of backends) {
 				fetch(`${base}/api/hub/db/${encodeURIComponent(app)}/${encodeURIComponent(collection)}/${encodeURIComponent(id)}`, {
 					method: 'DELETE',
 				}).catch(() => {});
 			}
-			window.dispatchEvent(new CustomEvent('sts-db-updated', {detail: {app, collection, id}}));
+			try {
+				bc?.postMessage({type: 'delete', app, collection, id: String(id), updatedAt});
+			} catch {}
+			window.dispatchEvent(new CustomEvent('sts-db-updated', {detail: {app, collection, id: String(id), updatedAt}}));
+		},
+
+		async clear(app, collection) {
+			const prefix = `${app}:${collection}:`;
+			const rows = await idbGetAllByPrefix('records', prefix);
+			const updatedAt = Date.now();
+			for (const r of rows) {
+				await idbPut('records', {...r, data: null, _deleted: true, updatedAt});
+			}
+			const backends = await detectBackends();
+			for (const base of backends) {
+				fetch(`${base}/api/hub/db/${encodeURIComponent(app)}/${encodeURIComponent(collection)}`, {
+					method: 'DELETE',
+				}).catch(() => {});
+			}
+			try {
+				bc?.postMessage({type: 'clear', app, collection, updatedAt});
+			} catch {}
+			window.dispatchEvent(new CustomEvent('sts-db-updated', {detail: {app, collection, updatedAt}}));
+		},
+
+		async syncNow() {
+			if (isSyncing) return false;
+			isSyncing = true;
+			let anyChanged = false;
+			const changedApps = new Set();
+			try {
+				const localAll = await idbGetAll('records');
+				const backends = await detectBackends();
+				for (const base of backends) {
+					try {
+						const r = await fetch(`${base}/api/hub/sync`, {
+							method: 'POST',
+							headers: {'Content-Type': 'application/json'},
+							body: JSON.stringify({
+								records: localAll.map((x) => ({
+									app: x.app,
+									collection: x.collection,
+									id: x.id,
+									data: x.data,
+									_deleted: Boolean(x._deleted),
+									updatedAt: x.updatedAt || 0,
+								})),
+							}),
+						});
+						if (!r.ok) continue;
+						const j = await r.json();
+						const localByPk = new Map(localAll.map((x) => [x.pk, x]));
+						for (const srv of j.records || []) {
+							const pk = `${srv.app}:${srv.collection}:${srv.id}`;
+							const loc = localByPk.get(pk);
+							if (!loc || (srv.updatedAt || 0) > (loc.updatedAt || 0)) {
+								await idbPut('records', {
+									pk,
+									app: srv.app,
+									collection: srv.collection,
+									id: String(srv.id),
+									data: srv.data,
+									_deleted: Boolean(srv._deleted),
+									updatedAt: srv.updatedAt || Date.now(),
+								});
+								anyChanged = true;
+								changedApps.add(srv.app);
+							}
+						}
+						lastSyncTime = Date.now();
+					} catch {}
+				}
+			} finally {
+				isSyncing = false;
+			}
+			if (anyChanged) {
+				window.dispatchEvent(new CustomEvent('sts-db-remote-updated', {detail: {apps: [...changedApps]}}));
+				window.dispatchEvent(new CustomEvent('sts-db-updated', {detail: {remote: true, apps: [...changedApps]}}));
+			}
+			return anyChanged;
 		},
 
 		async putBlob(app, collection, id, blob, meta = {}) {
@@ -199,8 +324,8 @@
 		},
 
 		async stats() {
-			const all = await idbGetAllByPrefix('records', '');
-			const blobs = await idbGetAllByPrefix('blobs', '');
+			const all = (await idbGetAll('records')).filter((r) => !r._deleted && r.data !== null && r.data !== undefined);
+			const blobs = await idbGetAll('blobs');
 			const counts = {
 				'script-studio': 0,
 				'auto-video-studio': 0,
@@ -208,9 +333,15 @@
 				'sts-voice-studio': 0,
 			};
 			for (const r of all) {
-				if (counts[r.app] !== undefined) counts[r.app]++;
+				if (counts[r.app] !== undefined) {
+					// If script-studio stores its proyectos array inside store:main, count projects!
+					if (r.app === 'script-studio' && r.collection === 'store' && r.id === 'main' && Array.isArray(r.data?.projects)) {
+						counts['script-studio'] = Math.max(counts['script-studio'], r.data.projects.length);
+					} else {
+						counts[r.app]++;
+					}
+				}
 			}
-			// Also count AutoVideoStudioDB jobs if present
 			try {
 				const avsJobs = await new Promise((resolve) => {
 					const req = indexedDB.open('AutoVideoStudioDB', 1);
@@ -225,14 +356,17 @@
 				});
 				counts['auto-video-studio'] = Math.max(counts['auto-video-studio'], avsJobs);
 			} catch {}
-			const base = await detectSqliteBackend();
-			let engine = 'IndexedDB (Browser Database)';
-			if (base !== false) {
+
+			const backends = await detectBackends();
+			let engine = 'IndexedDB (Realtime Auto-Save)';
+			let sqliteConnected = false;
+			for (const base of backends) {
 				try {
 					const r = await fetch(`${base}/api/hub/stats`);
 					if (r.ok) {
 						const j = await r.json();
-						engine = 'SQLite (data/studio.db) + IndexedDB';
+						sqliteConnected = true;
+						engine = j.db?.engine ? `${j.db.engine} + IndexedDB` : 'Cloud SQLite + IndexedDB';
 						if (j.db?.jobs) counts['auto-video-studio'] = Math.max(counts['auto-video-studio'], j.db.jobs);
 						for (const [k, v] of Object.entries(j.db?.apps || {})) {
 							if (counts[k] !== undefined) counts[k] = Math.max(counts[k], Number(v) || 0);
@@ -240,11 +374,40 @@
 					}
 				} catch {}
 			}
-			return {engine, counts, totalRecords: all.length, totalBlobs: blobs.length, sqliteConnected: base !== false};
+			return {
+				engine,
+				counts,
+				totalRecords: all.length,
+				totalBlobs: blobs.length,
+				sqliteConnected,
+				lastSyncTime,
+			};
 		},
 	};
 
 	window.STS_DB = STS_DB;
+
+	// Listen for cross-tab changes via BroadcastChannel
+	if (bc) {
+		bc.onmessage = (ev) => {
+			const msg = ev.data || {};
+			if (msg.type === 'put' || msg.type === 'delete' || msg.type === 'clear') {
+				window.dispatchEvent(new CustomEvent('sts-db-remote-updated', {detail: {apps: [msg.app], fromTab: true}}));
+				window.dispatchEvent(new CustomEvent('sts-db-updated', {detail: {remote: true, apps: [msg.app]}}));
+			}
+		};
+	}
+
+	// Continuous background sync every 3.5 seconds + on tab focus/visibility
+	setInterval(() => {
+		if (document.visibilityState === 'visible') {
+			STS_DB.syncNow().catch(() => {});
+		}
+	}, 3500);
+	window.addEventListener('focus', () => STS_DB.syncNow().catch(() => {}));
+	document.addEventListener('visibilitychange', () => {
+		if (document.visibilityState === 'visible') STS_DB.syncNow().catch(() => {});
+	});
 
 	// ---- Single Sign-On Helper (user: sts, pass: 1111)
 	const STS_VOICE_HASH = 'b0336d1da7a2cac035e27ee79276d3d5d5b2c784502de9de8860078bbc5db1a8';
@@ -299,7 +462,6 @@
 		},
 	};
 
-	// ---- Determine base path to Hub root
 	function getHubRoot() {
 		const p = location.pathname;
 		for (const slug of ['/video-studio', '/script-studio', '/psd-studio', '/voice-studio']) {
@@ -320,10 +482,9 @@
 		return 'hub';
 	}
 
-	// ---- Inject Top Studio Switcher Bar inside the 4 Studio apps
 	function mountGlobalBar() {
 		const cur = detectCurrentApp();
-		if (cur === 'hub') return; // Hub has its own full header
+		if (cur === 'hub') return;
 		if (document.getElementById('sts-global-hub-bar')) return;
 
 		const root = getHubRoot().replace(/\/+$/, '');
@@ -341,9 +502,9 @@
 				background: linear-gradient(90deg, #090d16 0%, #111827 50%, #090d16 100%);
 				border-bottom: 1px solid rgba(99, 102, 241, 0.28);
 				font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
-				font-size: 12.5px;
-				color: #e5e7eb;
-				box-shadow: 0 2px 12px rgba(0,0,0,0.45);
+				font-size: 12px;
+				color: #e2e8f0;
+				box-shadow: 0 2px 12px rgba(0,0,0,0.35);
 			}
 			#sts-global-hub-bar .sgh-left,
 			#sts-global-hub-bar .sgh-center,
@@ -353,56 +514,69 @@
 				gap: 6px;
 				flex-wrap: wrap;
 			}
-			#sts-global-hub-bar a.sgh-hub-btn {
-				display: inline-flex;
-				align-items: center;
-				gap: 6px;
-				padding: 4px 11px;
-				border-radius: 999px;
-				background: rgba(99, 102, 241, 0.18);
-				border: 1px solid rgba(99, 102, 241, 0.45);
-				color: #c7d2fe;
-				font-weight: 600;
+			#sts-global-hub-bar a {
 				text-decoration: none;
-				transition: all 0.15s ease;
-			}
-			#sts-global-hub-bar a.sgh-hub-btn:hover {
-				background: rgba(99, 102, 241, 0.32);
-				color: #fff;
-			}
-			#sts-global-hub-bar a.sgh-app {
-				display: inline-flex;
-				align-items: center;
-				gap: 5px;
+				color: #cbd5e1;
 				padding: 4px 10px;
 				border-radius: 7px;
-				color: #9ca3af;
-				text-decoration: none;
-				font-weight: 500;
-				border: 1px solid transparent;
-				transition: all 0.15s ease;
-			}
-			#sts-global-hub-bar a.sgh-app:hover {
-				color: #f3f4f6;
-				background: rgba(255,255,255,0.06);
-			}
-			#sts-global-hub-bar a.sgh-app.active {
-				color: #ffffff;
-				background: rgba(59, 130, 246, 0.22);
-				border-color: rgba(59, 130, 246, 0.55);
 				font-weight: 600;
-			}
-			#sts-global-hub-bar .sgh-db-pill {
+				transition: all 0.15s ease;
 				display: inline-flex;
 				align-items: center;
 				gap: 5px;
+				border: 1px solid transparent;
+			}
+			#sts-global-hub-bar a:hover {
+				color: #fff;
+				background: rgba(255, 255, 255, 0.08);
+			}
+			#sts-global-hub-bar a.sgh-hub-btn {
+				background: rgba(99, 102, 241, 0.18);
+				border-color: rgba(99, 102, 241, 0.4);
+				color: #a5b4fc;
+			}
+			#sts-global-hub-bar a.sgh-app.active {
+				background: linear-gradient(135deg, #6366f1, #8b5cf6);
+				color: #fff;
+				box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+			}
+			#sts-global-hub-bar .sgh-db-pill {
+				font-size: 11px;
 				padding: 3px 9px;
 				border-radius: 999px;
 				background: rgba(16, 185, 129, 0.14);
-				border: 1px solid rgba(16, 185, 129, 0.4);
-				color: #6ee7b7;
-				font-size: 11.5px;
+				border: 1px solid rgba(16, 185, 129, 0.35);
+				color: #34d399;
 				font-weight: 600;
+				display: inline-flex;
+				align-items: center;
+				gap: 5px;
+			}
+			#sts-global-hub-bar .sgh-sync-btn {
+				font-size: 11px;
+				padding: 3px 9px;
+				border-radius: 999px;
+				background: rgba(59, 130, 246, 0.16);
+				border: 1px solid rgba(59, 130, 246, 0.38);
+				color: #93c5fd;
+				font-weight: 600;
+				cursor: pointer;
+			}
+			#sts-global-hub-bar .sgh-sync-btn:hover {
+				background: rgba(59, 130, 246, 0.28);
+				color: #fff;
+			}
+			@keyframes sghPulse {
+				0%, 100% { opacity: 1; }
+				50% { opacity: 0.35; }
+			}
+			.sgh-live-dot {
+				width: 7px;
+				height: 7px;
+				border-radius: 50%;
+				background: #10b981;
+				display: inline-block;
+				animation: sghPulse 2s infinite;
 			}
 		`;
 		document.head.appendChild(style);
@@ -420,7 +594,8 @@
 				<a class="sgh-app ${cur === 'sts-voice-studio' ? 'active' : ''}" href="${root}/voice-studio/">🎙️ STS Voice Studio</a>
 			</div>
 			<div class="sgh-right">
-				<span class="sgh-db-pill" id="sghDbStatus">🗄 Database: Đang đồng bộ…</span>
+				<span class="sgh-db-pill" id="sghDbStatus"><span class="sgh-live-dot"></span> Tự động đồng bộ DB…</span>
+				<button type="button" class="sgh-sync-btn" id="sghSyncNowBtn" title="Đồng bộ dữ liệu mới nhất ngay lập tức">🔄 Đồng bộ ngay</button>
 			</div>
 		`;
 		document.body.prepend(bar);
@@ -430,11 +605,23 @@
 			const el = document.getElementById('sghDbStatus');
 			if (el) {
 				const n = st.counts[cur] ?? 0;
-				el.textContent = `🗄 ${st.sqliteConnected ? 'SQLite + IndexedDB' : 'IndexedDB'} · ${n} bản ghi`;
+				const timeStr = new Date(st.lastSyncTime || Date.now()).toLocaleTimeString('vi-VN', {hour12: false});
+				el.innerHTML = `<span class="sgh-live-dot"></span> Live DB · ${n} dự án · cập nhật ${timeStr}`;
 				el.title = `Engine: ${st.engine}`;
 			}
 		};
-		refreshDbPill();
+		document.getElementById('sghSyncNowBtn').onclick = async (e) => {
+			const btn = e.currentTarget;
+			btn.textContent = '⏳ Đang đồng bộ…';
+			await STS_DB.syncNow();
+			await refreshDbPill();
+			btn.textContent = '✅ Đã đồng bộ';
+			setTimeout(() => {
+				btn.textContent = '🔄 Đồng bộ ngay';
+			}, 1500);
+		};
+
+		STS_DB.syncNow().then(refreshDbPill).catch(refreshDbPill);
 		window.addEventListener('sts-db-updated', refreshDbPill);
 	}
 

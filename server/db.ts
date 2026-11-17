@@ -269,7 +269,7 @@ export const dbListAppRecords = <T = unknown>(app: string, collection: string): 
 };
 
 export const dbGetAppRecord = <T = unknown>(app: string, collection: string, id: string): T | null => {
-	const row = stmtGetAppRecord.get(app, collection, id) as {data: string} | undefined;
+	const row = stmtGetAppRecord.get(app, collection, id) as {data: string; updated_at: number} | undefined;
 	if (!row) return null;
 	try {
 		return JSON.parse(row.data) as T;
@@ -278,8 +278,53 @@ export const dbGetAppRecord = <T = unknown>(app: string, collection: string, id:
 	}
 };
 
-export const dbPutAppRecord = (app: string, collection: string, id: string, data: unknown): void => {
-	stmtUpsertAppRecord.run(app, collection, String(id), JSON.stringify(data), Date.now());
+export const dbGetAppRecordWithMeta = <T = unknown>(app: string, collection: string, id: string): {item: T; updatedAt: number} | null => {
+	const row = stmtGetAppRecord.get(app, collection, id) as {data: string; updated_at: number} | undefined;
+	if (!row) return null;
+	try {
+		return {item: JSON.parse(row.data) as T, updatedAt: row.updated_at};
+	} catch {
+		return null;
+	}
+};
+
+export const dbPutAppRecord = (app: string, collection: string, id: string, data: unknown, updatedAt?: number): number => {
+	const ts = Number(updatedAt) || Date.now();
+	stmtUpsertAppRecord.run(app, collection, String(id), JSON.stringify(data), ts);
+	return ts;
+};
+
+export const dbSyncAllAppRecords = (
+	incoming: {app: string; collection: string; id: string; data: unknown; updatedAt?: number}[] = [],
+): {records: {app: string; collection: string; id: string; data: unknown; updatedAt: number}[]; serverTime: number} => {
+	for (const rec of incoming) {
+		if (!rec || !rec.app || !rec.collection || !rec.id) continue;
+		const existing = stmtGetAppRecord.get(rec.app, rec.collection, String(rec.id)) as {data: string; updated_at: number} | undefined;
+		const incTs = Number(rec.updatedAt) || Date.now();
+		if (!existing || incTs > (existing.updated_at || 0)) {
+			stmtUpsertAppRecord.run(rec.app, rec.collection, String(rec.id), JSON.stringify(rec.data), incTs);
+		}
+	}
+	const allRows = db.prepare(`SELECT app, collection, id, data, updated_at FROM app_records ORDER BY updated_at DESC`).all() as {
+		app: string;
+		collection: string;
+		id: string;
+		data: string;
+		updated_at: number;
+	}[];
+	const records = [];
+	for (const r of allRows) {
+		try {
+			records.push({
+				app: r.app,
+				collection: r.collection,
+				id: r.id,
+				data: JSON.parse(r.data),
+				updatedAt: r.updated_at,
+			});
+		} catch {}
+	}
+	return {records, serverTime: Date.now()};
 };
 
 export const dbDeleteAppRecord = (app: string, collection: string, id: string): void => {

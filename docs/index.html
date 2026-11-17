@@ -548,7 +548,8 @@
 				}
 				const detail = document.getElementById('hubDbDetailText');
 				if (detail) {
-					detail.textContent = `Đang lưu trữ an toàn trên ${st.engine} — hỗ trợ đồng bộ tức thì giữa cả 4 bộ công cụ Studio.`;
+					const t = new Date(st.lastSyncTime || Date.now()).toLocaleTimeString('vi-VN', {hour12: false});
+					detail.textContent = `🟢 Tự động đồng bộ liên tục (mỗi 3–4 giây) trên ${st.engine} · Cập nhật lần cuối: ${t}`;
 				}
 				for (const app of ['script-studio', 'auto-video-studio', 'vlive-psd-studio', 'sts-voice-studio']) {
 					const pill = document.getElementById(`count-${app}`);
@@ -625,6 +626,12 @@
 			};
 
 			updateAuthView();
+			window.addEventListener('sts-db-updated', () => {
+				if (window.STS_SSO?.isAuthed()) refreshHubStats();
+			});
+			setInterval(() => {
+				if (window.STS_SSO?.isAuthed() && document.visibilityState === 'visible') refreshHubStats();
+			}, 5000);
 		})();
 	</script>
 </body>

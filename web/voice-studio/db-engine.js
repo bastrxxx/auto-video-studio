@@ -199,6 +199,24 @@
 		refreshDbBar,
 	};
 
+	// ---- Tự động nạp dữ liệu mới khi dự án được cập nhật từ tab / thiết bị khác
+	let lastAppliedTs = 0;
+	window.addEventListener('sts-db-remote-updated', async (e) => {
+		const apps = e.detail?.apps || [];
+		if (apps.length && !apps.includes(APP)) return;
+		const el = document.activeElement;
+		const editing = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && el.closest('#tab-script');
+		const items = await window.STS_DB.list(APP, 'projects');
+		const cur = items.find((x) => x.id === activeProjId);
+		if (cur && (cur.updatedAt || 0) > lastAppliedTs && !editing) {
+			lastAppliedTs = cur.updatedAt || Date.now();
+			const api = window.VOICE_STUDIO_API;
+			const localJson = JSON.stringify((api?.S?.lines || []).map(({status, ...l}) => l));
+			if (localJson !== JSON.stringify(cur.lines || [])) applyProjectToEditor(cur, true);
+		}
+		await refreshDbBar();
+	});
+
 	if (document.readyState === 'loading') {
 		document.addEventListener('DOMContentLoaded', injectDbBar);
 	} else {

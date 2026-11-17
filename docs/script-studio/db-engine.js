@@ -38,9 +38,20 @@
 
 	let stateCache = null;
 	let initPromise = null;
+	let cacheTs = 0;
 
 	async function loadState() {
-		if (stateCache) return stateCache;
+		if (stateCache) {
+			// Nếu Database có bản mới hơn (do tab/máy khác vừa cập nhật) thì nạp lại để luôn dùng dữ liệu mới nhất
+			try {
+				const meta = await window.STS_DB.getWithMeta(APP, 'store', 'main');
+				if (meta && meta.updatedAt > cacheTs && meta.data && Array.isArray(meta.data.users)) {
+					stateCache = meta.data;
+					cacheTs = meta.updatedAt;
+				}
+			} catch {}
+			return stateCache;
+		}
 		if (initPromise) return initPromise;
 		initPromise = (async () => {
 			const db = window.STS_DB;
@@ -188,6 +199,7 @@
 				await db.put(APP, 'store', 'main', root);
 			}
 			stateCache = root;
+			cacheTs = (await db.getWithMeta(APP, 'store', 'main'))?.updatedAt || Date.now();
 			window.__SS_FILE_URLS__ = window.__SS_FILE_URLS__ || {};
 			for (const pr of root.projects || []) {
 				for (const f of pr.files || []) if (f.id && f.dataUrl) window.__SS_FILE_URLS__[f.id] = f.dataUrl;
@@ -201,7 +213,42 @@
 	async function saveState() {
 		if (!stateCache) return;
 		await window.STS_DB.put(APP, 'store', 'main', stateCache);
+		cacheTs = (await window.STS_DB.getWithMeta(APP, 'store', 'main'))?.updatedAt || Date.now();
 	}
+
+	// ---- Tự động cập nhật khi dữ liệu thay đổi từ tab / thiết bị khác
+	let pendingRemote = false;
+	function isUserEditing() {
+		const el = document.activeElement;
+		return Boolean(el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable));
+	}
+	function showUpdateBanner() {
+		if (document.getElementById('ssLiveUpdateBanner')) return;
+		const b = document.createElement('div');
+		b.id = 'ssLiveUpdateBanner';
+		b.style.cssText =
+			'position:fixed;right:18px;bottom:18px;z-index:100000;padding:10px 14px;border-radius:12px;background:#1e293b;border:1px solid rgba(99,102,241,.55);color:#e2e8f0;font:600 13px Inter,system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.45);cursor:pointer';
+		b.textContent = '🔄 Dự án vừa được cập nhật ở nơi khác — bấm để tải dữ liệu mới';
+		b.onclick = () => location.reload();
+		document.body.appendChild(b);
+	}
+	async function applyRemoteUpdate() {
+		const meta = await window.STS_DB.getWithMeta(APP, 'store', 'main');
+		if (!meta || meta.updatedAt <= cacheTs) return;
+		if (isUserEditing()) {
+			pendingRemote = true;
+			showUpdateBanner();
+			return;
+		}
+		location.reload();
+	}
+	window.addEventListener('sts-db-remote-updated', (e) => {
+		const apps = e.detail?.apps || [];
+		if (!apps.length || apps.includes(APP)) applyRemoteUpdate().catch(() => {});
+	});
+	document.addEventListener('focusout', () => {
+		if (pendingRemote) setTimeout(() => !isUserEditing() && applyRemoteUpdate().catch(() => {}), 400);
+	});
 
 	function nextId(st) {
 		st.nextId = (Number(st.nextId) || 500) + 1;

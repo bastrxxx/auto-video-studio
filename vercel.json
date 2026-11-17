@@ -6,6 +6,10 @@
 	"trailingSlash": true,
 	"rewrites": [
 		{
+			"source": "/api/hub/:path*",
+			"destination": "/api/hub"
+		},
+		{
 			"source": "/script-studio/login",
 			"destination": "/script-studio/index.html"
 		},

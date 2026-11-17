@@ -8,11 +8,13 @@ import {
 	dbClearAppCollection,
 	dbDeleteAppRecord,
 	dbGetAppRecord,
+	dbGetAppRecordWithMeta,
 	dbGetSetting,
 	dbListAppRecords,
 	dbPutAppRecord,
 	dbSetSetting,
 	dbStats,
+	dbSyncAllAppRecords,
 	dbVerifyToken,
 	dbVerifyUser,
 } from './db.js';
@@ -89,7 +91,13 @@ app.post('/api/logout', (_req, res) => {
 
 // ---- Multi-App SQLite Database Endpoints (/api/hub/db/:app/:collection)
 app.get('/api/hub/stats', (_req, res) => {
-	res.json({ok: true, db: dbStats()});
+	res.json({ok: true, db: dbStats(), serverTime: Date.now()});
+});
+
+app.post('/api/hub/sync', (req, res) => {
+	const incoming = Array.isArray(req.body?.records) ? req.body.records : [];
+	const synced = dbSyncAllAppRecords(incoming);
+	res.json({ok: true, ...synced, db: dbStats()});
 });
 
 app.get('/api/hub/db/:app/:collection', (req, res) => {
@@ -98,13 +106,19 @@ app.get('/api/hub/db/:app/:collection', (req, res) => {
 });
 
 app.get('/api/hub/db/:app/:collection/:id', (req, res) => {
-	const item = dbGetAppRecord(req.params.app, req.params.collection, req.params.id);
-	res.json({ok: true, item});
+	const meta = dbGetAppRecordWithMeta(req.params.app, req.params.collection, req.params.id);
+	res.json({ok: true, item: meta ? meta.item : null, updatedAt: meta ? meta.updatedAt : 0});
 });
 
 app.put('/api/hub/db/:app/:collection/:id', (req, res) => {
-	dbPutAppRecord(req.params.app, req.params.collection, req.params.id, req.body?.data ?? req.body);
-	res.json({ok: true, db: dbStats()});
+	const updatedAt = dbPutAppRecord(
+		req.params.app,
+		req.params.collection,
+		req.params.id,
+		req.body?.data !== undefined ? req.body.data : req.body,
+		req.body?.updatedAt,
+	);
+	res.json({ok: true, updatedAt, db: dbStats()});
 });
 
 app.delete('/api/hub/db/:app/:collection/:id', (req, res) => {
