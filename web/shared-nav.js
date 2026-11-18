@@ -589,6 +589,46 @@
 				border-color: #94A5FF !important;
 				box-shadow: 0 0 0 3px rgba(74, 91, 224, 0.35) !important;
 			}
+			/* Script Studio screenplay paper: preserve selected script font (Courier New, etc.), remove dark boxes, use dark charcoal text */
+			.script-paper {
+				background: #FCFBF7 !important;
+				color: #27272A !important;
+			}
+			.script-paper textarea,
+			.script-paper .sb textarea,
+			.script-paper table.doc-tbl textarea {
+				font-family: inherit !important;
+				background: transparent !important;
+				color: #27272A !important;
+				border: 0 !important;
+				box-shadow: none !important;
+			}
+			.script-paper .sb textarea:focus,
+			.script-paper table.doc-tbl textarea:focus {
+				background: rgba(254, 249, 195, 0.45) !important;
+				color: #18181B !important;
+				border: 0 !important;
+				box-shadow: none !important;
+			}
+			.script-paper .sb-backdrop {
+				font-family: inherit !important;
+				color: transparent !important;
+			}
+			.script-paper .sb.t-general textarea {
+				color: #52525B !important;
+			}
+			.script-paper .gutter {
+				color: #71717A !important;
+			}
+			/* Script Studio spreadsheet cells: keep clean borderless cells inside table.sheet */
+			table.sheet td .cell,
+			table.sheet td select.cell-select,
+			table.sheet td input.cell-input,
+			table.sheet th .gs-th-input {
+				background: transparent !important;
+				border: 0 !important;
+				box-shadow: none !important;
+			}
 			#sts-global-hub-bar {
 				position: sticky;
 				top: 0;
