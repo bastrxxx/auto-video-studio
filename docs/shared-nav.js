@@ -511,13 +511,34 @@
 		style.textContent = `
 			:root {
 				--brand-primary: #2C368A;
-				--brand-primary-light: #3E4CC0;
-				--brand-glow: rgba(44, 54, 138, 0.45);
-				--bg: #09090B !important;
-				--bg2: #121215 !important;
-				--card: rgba(24, 24, 28, 0.58) !important;
-				--accent: #2C368A !important;
-				--blue: #2C368A !important;
+				--brand-primary-light: #4A5BE0;
+				--brand-glow: rgba(44, 54, 138, 0.55);
+				--bg: #090A0E !important;
+				--bg2: #12141C !important;
+				--bg3: #1B1E2A !important;
+				--panel: #14161F !important;
+				--panel2: #1B1E2B !important;
+				--panel3: #0D0F16 !important;
+				--surface: #14161F !important;
+				--surface2: #1B1E2B !important;
+				--surface-2: #1B1E2B !important;
+				--surface3: #232738 !important;
+				--card: rgba(24, 26, 36, 0.68) !important;
+				--line: rgba(255, 255, 255, 0.16) !important;
+				--line2: rgba(255, 255, 255, 0.24) !important;
+				--line-hi: rgba(255, 255, 255, 0.28) !important;
+				--text: #FFFFFF !important;
+				--txt: #FFFFFF !important;
+				--txt2: #DCE2F2 !important;
+				--muted: #B8C0D4 !important;
+				--mut: #B8C0D4 !important;
+				--accent: #94A5FF !important;
+				--accent2: #687BFF !important;
+				--pri: #4A5BE0 !important;
+				--pri2: #2C368A !important;
+				--primary: #4A5BE0 !important;
+				--primary-d: #2C368A !important;
+				--primary-l: rgba(74, 91, 224, 0.22) !important;
 				--font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
 			}
 			body, button, input, select, textarea, .app, .shell, .workspace {
@@ -525,24 +546,48 @@
 			}
 			body {
 				background:
-					radial-gradient(600px circle at 15% 10%, rgba(44, 54, 138, 0.22), transparent 60%),
-					radial-gradient(500px circle at 85% 15%, rgba(44, 54, 138, 0.14), transparent 58%),
-					#09090B !important;
-				color: #FAFAFA;
+					radial-gradient(650px circle at 15% 10%, rgba(44, 54, 138, 0.26), transparent 60%),
+					radial-gradient(550px circle at 85% 15%, rgba(44, 54, 138, 0.16), transparent 58%),
+					#090A0E !important;
+				color: #FFFFFF !important;
 			}
-			/* iOS 26 Liquid Glass surfaces across all 4 Studio apps */
-			.card, .panel, .topbar, header.top, .sidebar, .login-card, .modal-card, .ed-side, .ed-tl, .view-tabs {
-				background: linear-gradient(145deg, rgba(255, 255, 255, 0.07) 0%, rgba(22, 22, 26, 0.62) 48%, rgba(14, 14, 18, 0.76) 100%) !important;
+			/* iOS 26 Liquid Glass surfaces across all 4 Studio apps with clear border contrast */
+			.card, .panel, .topbar, header.top, .sidebar, .login-card, .modal-card, .modal, .ed-side, .ed-tl, .view-tabs {
+				background: linear-gradient(145deg, rgba(255, 255, 255, 0.08) 0%, rgba(22, 24, 34, 0.72) 48%, rgba(15, 16, 24, 0.84) 100%) !important;
 				backdrop-filter: blur(28px) saturate(185%) !important;
 				-webkit-backdrop-filter: blur(28px) saturate(185%) !important;
-				border: 1px solid rgba(255, 255, 255, 0.11) !important;
-				box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.18), 0 18px 42px -12px rgba(0, 0, 0, 0.6) !important;
+				border: 1px solid rgba(255, 255, 255, 0.16) !important;
+				box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.22), 0 18px 42px -12px rgba(0, 0, 0, 0.65) !important;
 			}
-			button.primary, .btn.primary, .btn.blue, .tbtn.primary, .view-tab.on, .tab.active {
-				background: linear-gradient(180deg, #3B49B8 0%, #2C368A 100%) !important;
-				border-color: rgba(255, 255, 255, 0.22) !important;
-				box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.3), 0 8px 22px -4px rgba(44, 54, 138, 0.65) !important;
+			/* High-contrast active / primary buttons & pills (#2C368A Liquid Glass + pure white text) */
+			button.primary, a.primary, .btn.primary, .btn.blue, .tbtn.primary, .view-tab.on, .tab.active, .ep-tab.active, .seg button.on, .num, .view-tab.on .step-dot, .clip .badge, .chip.on {
+				background: linear-gradient(180deg, #4757D4 0%, #2C368A 100%) !important;
+				border: 1px solid rgba(160, 176, 255, 0.5) !important;
+				box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.35), 0 6px 20px -4px rgba(44, 54, 138, 0.7) !important;
 				color: #FFFFFF !important;
+				text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+			}
+			button.primary:disabled, .btn.primary:disabled, .tbtn.primary:disabled {
+				background: linear-gradient(180deg, rgba(71, 87, 212, 0.45) 0%, rgba(44, 54, 138, 0.45) 100%) !important;
+				border-color: rgba(160, 176, 255, 0.32) !important;
+				color: rgba(255, 255, 255, 0.85) !important;
+				opacity: 1 !important;
+			}
+			/* High-contrast unselected buttons, inputs, selects, and labels */
+			.seg button:not(.on), button.ghost, a.ghost, .btn:not(.primary):not(.blue):not(.ok):not(.danger), .tbtn:not(.primary) {
+				color: #E2E8F5 !important;
+			}
+			.style small, .muted, .qb-lbl, label, th, .brand p, .view-tab small {
+				color: #C2CAE0 !important;
+			}
+			select, textarea, input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=file]) {
+				background: rgba(10, 12, 18, 0.88) !important;
+				color: #FFFFFF !important;
+				border: 1px solid rgba(255, 255, 255, 0.22) !important;
+			}
+			select:focus, textarea:focus, input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=file]):focus {
+				border-color: #94A5FF !important;
+				box-shadow: 0 0 0 3px rgba(74, 91, 224, 0.35) !important;
 			}
 			#sts-global-hub-bar {
 				position: sticky;
