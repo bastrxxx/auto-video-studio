@@ -8,3 +8,4 @@ public/music/manifest.json
 public/sfx/*.mp3
 .DS_Store
 .env
+.sync-cache/
