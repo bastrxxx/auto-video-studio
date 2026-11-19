@@ -673,6 +673,93 @@
 			font-weight: 600;
 		}
 
+		/* ---- AGY CLI AI MODEL SELECTOR & RUNNER ---- */
+		.agy-grid {
+			display: grid;
+			grid-template-columns: 1.15fr 1fr auto;
+			gap: 12px;
+			align-items: end;
+			margin-bottom: 14px;
+		}
+		.agy-field {
+			display: flex;
+			flex-direction: column;
+			gap: 6px;
+		}
+		.agy-field label {
+			font-size: 11.5px;
+			font-weight: 700;
+			color: #CBD5E1;
+			letter-spacing: 0.03em;
+			text-transform: uppercase;
+		}
+		.agy-field select, .agy-field input, .agy-prompt {
+			width: 100%;
+			padding: 10px 13px;
+			border-radius: 10px;
+			border: 1px solid rgba(255, 255, 255, 0.14);
+			background: rgba(8, 11, 18, 0.85);
+			color: #FFFFFF;
+			font-size: 13px;
+			outline: none;
+		}
+		.agy-field select:focus, .agy-field input:focus, .agy-prompt:focus {
+			border-color: var(--brand-accent);
+			box-shadow: 0 0 0 3px rgba(44, 54, 138, 0.35);
+		}
+		.agy-run-row {
+			display: flex;
+			gap: 10px;
+			align-items: flex-start;
+		}
+		.agy-prompt {
+			flex: 1;
+			min-height: 44px;
+			max-height: 120px;
+			resize: vertical;
+			line-height: 1.45;
+		}
+		.agy-output {
+			margin-top: 12px;
+			padding: 12px 14px;
+			border-radius: 11px;
+			background: rgba(8, 11, 18, 0.9);
+			border: 1px solid rgba(255, 255, 255, 0.1);
+			color: #E2E8F0;
+			font-size: 13px;
+			white-space: pre-wrap;
+			max-height: 240px;
+			overflow: auto;
+			line-height: 1.55;
+		}
+		.agy-meta-row {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 12px;
+			flex-wrap: wrap;
+			margin-top: 10px;
+			font-size: 12px;
+			color: var(--text-sub);
+		}
+		.agy-toggle {
+			display: inline-flex;
+			align-items: center;
+			gap: 8px;
+			cursor: pointer;
+			color: #E2E8F0;
+			font-weight: 600;
+		}
+		.agy-toggle input {
+			accent-color: #4F60D6;
+			width: 15px;
+			height: 15px;
+		}
+		@media (max-width: 780px) {
+			.agy-grid { grid-template-columns: 1fr; }
+			.agy-run-row { flex-direction: column; }
+		}
+
 		/* ---- FOOTER ---- */
 		.hub-footer {
 			display: flex;
@@ -784,6 +871,13 @@
 						<path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
 					</svg>
 					<span>Dữ liệu &amp; sao lưu</span>
+				</button>
+				<button type="button" class="sb-nav-item" id="sbScrollAiBtn">
+					<svg viewBox="0 0 24 24">
+						<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path>
+						<path d="M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"></path>
+					</svg>
+					<span>Mô hình AI (agy CLI)</span>
 				</button>
 			</nav>
 
@@ -984,6 +1078,61 @@
 					</article>
 				</section>
 
+				<!-- MÔ HÌNH AI (AGY CLI TRÊN MÁY TÍNH) -->
+				<section class="data-card" id="agyAiCard" style="margin-bottom:20px">
+					<div class="dc-top">
+						<div class="dc-info">
+							<div class="dc-icon" style="background:rgba(44,54,138,0.28);border-color:rgba(91,108,232,0.3);color:#7C8BFF">
+								<svg viewBox="0 0 24 24">
+									<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path>
+									<path d="M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"></path>
+								</svg>
+							</div>
+							<div>
+								<h3>Mô hình AI — Antigravity CLI (<code>agy</code>) trên máy tính</h3>
+								<p>Tự động gọi <code>agy -p --model</code> trực tiếp trên máy local để biên tập video, viết kịch bản &amp; hỏi đáp AI.</p>
+							</div>
+						</div>
+						<span class="dc-status-pill" id="agyStatusPill">⏳ Đang kiểm tra agy CLI…</span>
+					</div>
+
+					<div class="agy-grid">
+						<div class="agy-field">
+							<label for="agyModelSelect">Chọn mô hình AI (agy CLI)</label>
+							<select id="agyModelSelect">
+								<option value="auto">Tự động (Mặc định của agy CLI)</option>
+								<option value="gemini-4-neon" selected>Gemini 4 Neon</option>
+								<option value="gemini-4-argon">Gemini 4 Argon</option>
+								<option value="gemini-3.1-pro">Gemini 3.1 Pro</option>
+								<option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+								<option value="gemini-2.5-flash">Gemini 2.5 Flash (Nhanh)</option>
+								<option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
+								<option value="claude-opus-4-6">Claude Opus 4.6</option>
+								<option value="gpt-oss-120b">GPT-OSS 120B</option>
+							</select>
+						</div>
+						<div class="agy-field">
+							<label for="agyCustomModel">Hoặc nhập tên model khác (tuỳ chọn)</label>
+							<input type="text" id="agyCustomModel" placeholder="VD: gemini-4-neon, claude-sonnet-4-6…" />
+						</div>
+						<button type="button" class="btn-backup" id="agySaveCfgBtn" style="height:41px;white-space:nowrap">💾 Lưu mô hình</button>
+					</div>
+
+					<div class="agy-run-row">
+						<textarea class="agy-prompt" id="agyPromptInput" rows="1" placeholder="Nhập yêu cầu để chạy trực tiếp bằng agy CLI trên máy tính (VD: Gợi ý 3 ý tưởng hook TikTok 5 giây)…"></textarea>
+						<button type="button" class="sc-btn-open" id="agyRunBtn" style="flex:0 0 auto;padding:0 18px;height:44px">▶ Chạy agy CLI</button>
+					</div>
+					<div class="agy-output hidden" id="agyOutputBox"></div>
+
+					<div class="agy-meta-row">
+						<label class="agy-toggle">
+							<input type="checkbox" id="agyEnabledToggle" checked />
+							<span>Tự động dùng <code>agy</code> CLI cho các tác vụ AI trong Studio</span>
+						</label>
+						<span id="agyBinInfo">Server Local: http://localhost:8790</span>
+					</div>
+				</section>
+
 				<!-- DỮ LIỆU & SAO LƯU -->
 				<section class="data-card" id="dataBackupCard">
 					<div class="dc-top">
@@ -1082,6 +1231,147 @@
 			document.getElementById('sbScrollDataBtn').onclick = () => {
 				document.getElementById('dataBackupCard')?.scrollIntoView({behavior: 'smooth', block: 'center'});
 			};
+			document.getElementById('sbScrollAiBtn').onclick = () => {
+				document.getElementById('agyAiCard')?.scrollIntoView({behavior: 'smooth', block: 'center'});
+			};
+
+			// ---- Local Antigravity CLI (agy) AI Engine & Model Selector
+			let agyBaseUrl = null;
+			async function findAgyServer() {
+				const candidates = location.hostname === 'localhost' || location.hostname === '127.0.0.1' ? ['', 'http://localhost:8790'] : ['http://localhost:8790', ''];
+				for (const base of [...new Set(candidates)]) {
+					try {
+						const ctrl = new AbortController();
+						const to = setTimeout(() => ctrl.abort(), 1600);
+						const r = await fetch(`${base}/api/agy/status`, {signal: ctrl.signal});
+						clearTimeout(to);
+						const ct = r.headers.get('content-type') || '';
+						if (r.ok && ct.includes('application/json')) {
+							agyBaseUrl = base;
+							return await r.json();
+						}
+					} catch {}
+				}
+				return null;
+			}
+
+			async function loadAgyStatus() {
+				const pill = document.getElementById('agyStatusPill');
+				const binInfo = document.getElementById('agyBinInfo');
+				const sel = document.getElementById('agyModelSelect');
+				const custom = document.getElementById('agyCustomModel');
+				const tog = document.getElementById('agyEnabledToggle');
+
+				// Restore local preference immediately
+				try {
+					const saved = JSON.parse(localStorage.getItem('vlive_agy_config') || 'null');
+					if (saved) {
+						if (saved.model && sel) sel.value = saved.model;
+						if (custom) custom.value = saved.customModel || '';
+						if (tog && saved.enabled !== undefined) tog.checked = Boolean(saved.enabled);
+					}
+				} catch {}
+
+				const st = await findAgyServer();
+				if (!st) {
+					if (pill) {
+						pill.textContent = '○ Chưa bật Server Local (localhost:8790)';
+						pill.style.background = 'rgba(245, 158, 11, 0.14)';
+						pill.style.borderColor = 'rgba(245, 158, 11, 0.35)';
+						pill.style.color = '#FBBF24';
+					}
+					if (binInfo) binInfo.textContent = 'Chạy server local trên máy để gọi lệnh agy CLI trực tiếp';
+					return;
+				}
+
+				if (st.config) {
+					if (sel && st.config.model) sel.value = st.config.model;
+					if (custom) custom.value = st.config.customModel || '';
+					if (tog) tog.checked = Boolean(st.config.enabled);
+					localStorage.setItem('vlive_agy_config', JSON.stringify(st.config));
+				}
+
+				if (st.installed) {
+					if (pill) {
+						pill.textContent = `✓ agy CLI sẵn sàng · ${st.activeModel || 'auto'}`;
+						pill.style.background = 'rgba(16, 185, 129, 0.14)';
+						pill.style.borderColor = 'rgba(16, 185, 129, 0.25)';
+						pill.style.color = '#34D399';
+					}
+					if (binInfo) binInfo.textContent = `Binary: ${st.binPath}${st.version ? ` (${st.version})` : ''}`;
+				} else {
+					if (pill) {
+						pill.textContent = '⚠ Chưa tìm thấy lệnh agy trên máy';
+						pill.style.background = 'rgba(245, 158, 11, 0.14)';
+						pill.style.borderColor = 'rgba(245, 158, 11, 0.35)';
+						pill.style.color = '#FBBF24';
+					}
+					if (binInfo) binInfo.textContent = 'Đã kết nối Server Local — Hãy cài Antigravity CLI (`agy`) vào PATH trên máy tính';
+				}
+			}
+
+			document.getElementById('agySaveCfgBtn').onclick = async () => {
+				const cfg = {
+					enabled: Boolean(document.getElementById('agyEnabledToggle')?.checked),
+					model: document.getElementById('agyModelSelect')?.value || 'auto',
+					customModel: (document.getElementById('agyCustomModel')?.value || '').trim(),
+				};
+				localStorage.setItem('vlive_agy_config', JSON.stringify(cfg));
+				const btn = document.getElementById('agySaveCfgBtn');
+				if (agyBaseUrl !== null) {
+					try {
+						const r = await fetch(`${agyBaseUrl}/api/agy/config`, {
+							method: 'PUT',
+							headers: {'Content-Type': 'application/json'},
+							body: JSON.stringify(cfg),
+						});
+						if (r.ok) {
+							btn.textContent = '✅ Đã lưu';
+							await loadAgyStatus();
+							setTimeout(() => (btn.textContent = '💾 Lưu mô hình'), 1500);
+							return;
+						}
+					} catch {}
+				}
+				btn.textContent = '✅ Đã lưu (Browser)';
+				setTimeout(() => (btn.textContent = '💾 Lưu mô hình'), 1500);
+			};
+
+			document.getElementById('agyRunBtn').onclick = async () => {
+				const promptEl = document.getElementById('agyPromptInput');
+				const outEl = document.getElementById('agyOutputBox');
+				const btn = document.getElementById('agyRunBtn');
+				const prompt = (promptEl?.value || '').trim();
+				if (!prompt) {
+					promptEl?.focus();
+					return;
+				}
+				const model = (document.getElementById('agyCustomModel')?.value || '').trim() || document.getElementById('agyModelSelect')?.value || 'auto';
+				btn.disabled = true;
+				btn.textContent = '⏳ Đang chạy agy…';
+				outEl.classList.remove('hidden');
+				outEl.textContent = `Đang gửi câu lệnh tới agy CLI (--model ${model}) trên máy tính…`;
+				try {
+					if (agyBaseUrl === null) await findAgyServer();
+					if (agyBaseUrl === null) {
+						throw new Error('Không kết nối được tới Server Local (http://localhost:8790). Hãy khởi động server trên máy tính trước.');
+					}
+					const r = await fetch(`${agyBaseUrl}/api/agy/run`, {
+						method: 'POST',
+						headers: {'Content-Type': 'application/json'},
+						body: JSON.stringify({prompt, model}),
+					});
+					const j = await r.json();
+					if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`);
+					outEl.textContent = `[agy CLI · model: ${j.model} · ${(j.durationMs / 1000).toFixed(1)}s]\n\n${j.output}`;
+				} catch (err) {
+					outEl.textContent = `❌ ${err.message}`;
+				} finally {
+					btn.disabled = false;
+					btn.textContent = '▶ Chạy agy CLI';
+				}
+			};
+			loadAgyStatus();
 
 			document.getElementById('hubGuideBtn').onclick = () => {
 				alert('Hướng dẫn sử dụng Vlive Studio:\n\n1. Chọn 1 trong 4 bộ công cụ Studio để bắt đầu làm việc.\n2. Toàn bộ dự án, kịch bản, timeline video, file PSD và lời thoại AI đều được lưu & đồng bộ tự động.\n3. Bạn có thể chuyển nhanh giữa các công cụ trên thanh điều hướng hoặc xuất file sao lưu (.json) tại mục Dữ liệu & sao lưu.');

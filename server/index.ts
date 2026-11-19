@@ -21,6 +21,7 @@ import {
 import {addClips, cancelJob, clearAllJobs, createJob, deleteJob, getJob, getTimeline, jobDetail, listJobs, publicJob, removeClip, saveTimeline, startJob} from './jobs.js';
 import {downloadWhisperModel, type WhisperModel} from '@remotion/install-whisper-cpp';
 import {buildWebBundle} from './build-web.js';
+import {getAgyStatus, runAgyPrompt, saveAgyConfig} from './agy-cli.js';
 import {availableModels, whisperReady} from './pipeline/transcribe.js';
 import {listMusic, resetSfxCache} from './pipeline/plan.js';
 import {getBundle, prepareBrowser} from './pipeline/render.js';
@@ -129,6 +130,40 @@ app.delete('/api/hub/db/:app/:collection/:id', (req, res) => {
 app.delete('/api/hub/db/:app/:collection', (req, res) => {
 	dbClearAppCollection(req.params.app, req.params.collection);
 	res.json({ok: true, db: dbStats()});
+});
+
+// ---- Local Antigravity CLI (`agy`) AI Engine & Model Selector Endpoints
+app.get('/api/agy/status', async (_req, res) => {
+	try {
+		res.json(await getAgyStatus());
+	} catch (e) {
+		res.status(500).json({ok: false, error: (e as Error).message});
+	}
+});
+
+app.put('/api/agy/config', async (req, res) => {
+	try {
+		const config = saveAgyConfig(req.body || {});
+		const status = await getAgyStatus();
+		res.json({...status, config});
+	} catch (e) {
+		res.status(400).json({ok: false, error: (e as Error).message});
+	}
+});
+
+app.post('/api/agy/run', async (req, res) => {
+	try {
+		const prompt = String(req.body?.prompt || '').trim();
+		if (!prompt) {
+			res.status(400).json({ok: false, error: 'Thiếu nội dung câu lệnh (prompt)'});
+			return;
+		}
+		const model = typeof req.body?.model === 'string' ? req.body.model.trim() : undefined;
+		const out = await runAgyPrompt(prompt, {model});
+		res.json(out);
+	} catch (e) {
+		res.status(400).json({ok: false, error: (e as Error).message});
+	}
 });
 
 app.use('/api', (req, res, next) => {

@@ -3,6 +3,7 @@
 import type {Word} from '../../shared/types.js';
 import type {Sentence} from './edit.js';
 import {GEMINI_MODEL} from '../config.js';
+import {findAgyBinary, getAgyConfig, runAgyPrompt} from '../agy-cli.js';
 
 export type AiResult = {
 	title?: string;
@@ -38,8 +39,45 @@ export const runGemini = async (key: string, words: Word[], sentences: Sentence[
 	const lines = sentences.map(
 		(s) => `S${s.id} (${s.start.toFixed(1)}-${s.end.toFixed(1)}s): ` + words.slice(s.w0, s.w1 + 1).map((w) => `[${w.i}]${w.text}`).join(' '),
 	);
+	const fullPrompt = PROMPT(opts.language, opts.maxDuration, opts.style, opts.brief || '') + '\n\nTRANSCRIPT:\n' + lines.join('\n');
+
+	// If local `agy` CLI AI Engine is enabled & installed (or no Gemini API key provided), route via `agy -p --model <selected>`
+	const agyCfg = getAgyConfig();
+	const agyBin = agyCfg.enabled ? await findAgyBinary(agyCfg.customPath) : null;
+	if (agyBin && (!key || agyCfg.enabled)) {
+		try {
+			const agyRes = await runAgyPrompt(fullPrompt, {timeoutMs: 90_000});
+			const jsonMatch = agyRes.output.match(/\{[\s\S]*\}/);
+			if (jsonMatch) {
+				const parsed = JSON.parse(jsonMatch[0]);
+				const ints = (xs: any) => (Array.isArray(xs) ? xs.map(Number).filter(Number.isFinite) : undefined);
+				const maxWord = words.length - 1;
+				return {
+					title: typeof parsed.title === 'string' ? parsed.title.slice(0, 60) : undefined,
+					dropSentences: ints(parsed.drop_sentences),
+					keepSentences: ints(parsed.keep_sentences),
+					keywords: ints(parsed.keywords)?.filter((i) => i >= 0 && i <= maxWord),
+					beats: Array.isArray(parsed.beats)
+						? parsed.beats
+								.filter((b: any) => b && typeof b.word === 'number' && b.word >= 0 && b.word <= maxWord)
+								.map((b: any) => ({
+									type: b.type,
+									word: b.word,
+									text: typeof b.text === 'string' ? b.text.slice(0, 32) : undefined,
+									sub: typeof b.sub === 'string' ? b.sub.slice(0, 32) : undefined,
+									emoji: typeof b.emoji === 'string' ? b.emoji.slice(0, 4) : undefined,
+								}))
+						: undefined,
+					fixes: parsed.fixes && typeof parsed.fixes === 'object' ? parsed.fixes : undefined,
+				};
+			}
+		} catch (err) {
+			if (!key) throw err;
+		}
+	}
+
 	const body = {
-		contents: [{role: 'user', parts: [{text: PROMPT(opts.language, opts.maxDuration, opts.style, opts.brief || '') + '\n\nTRANSCRIPT:\n' + lines.join('\n')}]}],
+		contents: [{role: 'user', parts: [{text: fullPrompt}]}],
 		generationConfig: {responseMimeType: 'application/json', temperature: 0.3},
 	};
 	const ctrl = new AbortController();
