@@ -1,0 +1,109 @@
+name: Two-Way Sync Script Studio
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'web/script-studio/app.js'
+      - 'web/script-studio/index.css'
+      - 'web/script-studio/online-config.json'
+      - 'web/script-studio/seed-db.json'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout auto-video-studio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Configure git
+        run: |
+          git config user.name "Vlive Studio Sync Bot"
+          git config user.email "sync-bot@vlive-studio.local"
+
+      - name: Clone bastrxxx/script-studio
+        env:
+          PAT: ${{ secrets.SCRIPT_STUDIO_TOKEN }}
+        run: |
+          if [ -n "$PAT" ]; then
+            git clone "https://x-access-token:${PAT}@github.com/bastrxxx/script-studio.git" /tmp/script-studio
+          else
+            git clone "https://github.com/bastrxxx/script-studio.git" /tmp/script-studio
+          fi
+          git -C /tmp/script-studio config user.name "Vlive Studio Sync Bot"
+          git -C /tmp/script-studio config user.email "sync-bot@vlive-studio.local"
+
+      - name: Two-way sync (latest changes win)
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PAT: ${{ secrets.SCRIPT_STUDIO_TOKEN }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            const { execSync } = require("child_process");
+            const FILES = ["app.js", "index.css", "online-config.json", "seed-db.json"];
+            const PATCH_OLD = `function _v(){if(typeof window<"u"&&/\\.github\\.io$/i.test(window.location.hostname)){const e=window.location.pathname.split("/").filter(Boolean)[0];if(e&&e!=="login"&&e!=="settings"&&e!=="p")return\`/\${e}\`}return"/"}`;
+            const PATCH_NEW = `function _v(){if(typeof window<"u"){const m=window.location.pathname.match(/^(.*?\\/script-studio)(?:\\/|$)/);if(m)return m[1];if(/\\.github\\.io$/i.test(window.location.hostname)){const e=window.location.pathname.split("/").filter(Boolean)[0];if(e&&e!=="login"&&e!=="settings"&&e!=="p")return\`/\${e}\`}}return"/"}`;
+
+            const patchApp = (p) => {
+              if (!fs.existsSync(p)) return;
+              let s = fs.readFileSync(p, "utf8");
+              if (s.includes(PATCH_OLD)) {
+                s = s.replace(PATCH_OLD, PATCH_NEW);
+                fs.writeFileSync(p, s);
+              }
+            };
+
+            const hubTs = Number(execSync("git log -1 --format=%ct -- web/script-studio/app.js web/script-studio/index.css web/script-studio/online-config.json web/script-studio/seed-db.json").toString().trim() || "0");
+            const extTs = Number(execSync("git -C /tmp/script-studio log -1 --format=%ct -- app.js index.css online-config.json seed-db.json").toString().trim() || "0");
+            console.log({ event: process.env.EVENT_NAME, hubTs, extTs });
+
+            if (process.env.EVENT_NAME === "push" && hubTs >= extTs) {
+              // Direction: auto-video-studio -> bastrxxx/script-studio
+              for (const f of FILES) {
+                const src = `web/script-studio/${f}`;
+                if (fs.existsSync(src)) {
+                  fs.copyFileSync(src, `/tmp/script-studio/${f}`);
+                  fs.copyFileSync(src, `docs/script-studio/${f}`);
+                }
+              }
+              patchApp("/tmp/script-studio/app.js");
+              const diff = execSync("git -C /tmp/script-studio status --porcelain").toString().trim();
+              if (diff && process.env.PAT) {
+                execSync("git -C /tmp/script-studio add app.js index.css online-config.json seed-db.json");
+                execSync(`git -C /tmp/script-studio commit -m "sync: update from Vlive Studio Hub [skip ci]"`);
+                execSync("git -C /tmp/script-studio push origin main");
+                console.log("Pushed updates to bastrxxx/script-studio");
+              } else {
+                console.log("No changes to push to bastrxxx/script-studio or SCRIPT_STUDIO_TOKEN not set");
+              }
+            } else {
+              // Direction: bastrxxx/script-studio -> auto-video-studio
+              for (const f of FILES) {
+                const src = `/tmp/script-studio/${f}`;
+                if (fs.existsSync(src)) {
+                  fs.copyFileSync(src, `web/script-studio/${f}`);
+                  fs.copyFileSync(src, `docs/script-studio/${f}`);
+                }
+              }
+              patchApp("web/script-studio/app.js");
+              patchApp("docs/script-studio/app.js");
+              const diff = execSync("git status --porcelain").toString().trim();
+              if (diff) {
+                execSync("git add web/script-studio docs/script-studio");
+                execSync(`git commit -m "sync: pull latest Script Studio from bastrxxx/script-studio [skip ci]"`);
+                execSync("git push origin main");
+                console.log("Synced latest bastrxxx/script-studio into auto-video-studio");
+              } else {
+                console.log("Already up to date with bastrxxx/script-studio");
+              }
+            }
+          '
