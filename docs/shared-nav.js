@@ -552,7 +552,7 @@
 				color: #FFFFFF !important;
 			}
 			/* iOS 26 Liquid Glass surfaces across all 4 Studio apps with clear border contrast */
-			.card, .panel, .topbar, header.top, .sidebar, .login-card, .modal-card, .modal, .ed-side, .ed-tl, .view-tabs {
+			.card, aside.panel, .topbar, header.top, .sidebar, .login-card, .modal-card, .modal, .ed-side, .ed-tl, .view-tabs {
 				background: linear-gradient(145deg, rgba(255, 255, 255, 0.08) 0%, rgba(22, 24, 34, 0.72) 48%, rgba(15, 16, 24, 0.84) 100%) !important;
 				backdrop-filter: blur(28px) saturate(185%) !important;
 				-webkit-backdrop-filter: blur(28px) saturate(185%) !important;
