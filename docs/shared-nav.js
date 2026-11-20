@@ -723,6 +723,85 @@
 			#sts-global-hub-bar .sgh-sync-btn:hover {
 				filter: brightness(1.12);
 			}
+			#sts-global-hub-bar .sgh-ai-btn {
+				font-size: 11.5px;
+				padding: 4px 11px;
+				border-radius: 999px;
+				background: linear-gradient(180deg, #4555CE 0%, #2C368A 100%);
+				border: 1px solid rgba(160, 176, 255, 0.5);
+				box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 4px 12px rgba(44, 54, 138, 0.55);
+				color: #FFFFFF;
+				font-weight: 700;
+				cursor: pointer;
+				display: inline-flex;
+				align-items: center;
+				gap: 5px;
+			}
+			#sts-global-hub-bar .sgh-ai-btn:hover {
+				filter: brightness(1.12);
+			}
+			/* Universal agy CLI Slide-Over Drawer for all 4 Studio Tools */
+			#vlive-agy-drawer {
+				position: fixed;
+				top: 48px;
+				right: 14px;
+				width: 420px;
+				max-width: calc(100vw - 28px);
+				max-height: calc(100vh - 64px);
+				z-index: 100001;
+				border-radius: 20px;
+				padding: 18px 20px;
+				background: linear-gradient(155deg, rgba(28, 32, 48, 0.94) 0%, rgba(13, 15, 24, 0.98) 100%);
+				backdrop-filter: blur(32px) saturate(190%);
+				-webkit-backdrop-filter: blur(32px) saturate(190%);
+				border: 1px solid rgba(152, 168, 255, 0.34);
+				box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 26px 64px rgba(0, 0, 0, 0.78);
+				color: #FFFFFF;
+				font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+				display: flex;
+				flex-direction: column;
+				gap: 12px;
+				overflow: auto;
+			}
+			#vlive-agy-drawer.hidden { display: none !important; }
+			#vlive-agy-drawer .vad-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+			#vlive-agy-drawer .vad-head b { font-size: 14.5px; }
+			#vlive-agy-drawer .vad-close { width: 28px; height: 28px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.16); background: rgba(255,255,255,0.06); color: #fff; cursor: pointer; }
+			#vlive-agy-drawer .vad-row { display: flex; gap: 8px; align-items: center; }
+			#vlive-agy-drawer select, #vlive-agy-drawer textarea {
+				width: 100%;
+				padding: 9px 11px;
+				border-radius: 10px;
+				border: 1px solid rgba(255,255,255,0.2);
+				background: rgba(8,10,16,0.9);
+				color: #FFFFFF;
+				font-size: 13px;
+				font-family: inherit;
+			}
+			#vlive-agy-drawer .vad-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+			#vlive-agy-drawer .vad-chip {
+				font-size: 11.5px;
+				padding: 4px 9px;
+				border-radius: 999px;
+				border: 1px solid rgba(145,162,255,0.32);
+				background: rgba(44,54,138,0.28);
+				color: #E2E8F5;
+				cursor: pointer;
+			}
+			#vlive-agy-drawer .vad-chip:hover { background: rgba(69,85,206,0.5); color: #fff; }
+			#vlive-agy-drawer .vad-out {
+				padding: 11px 13px;
+				border-radius: 11px;
+				background: rgba(7,9,14,0.92);
+				border: 1px solid rgba(255,255,255,0.12);
+				font-size: 12.5px;
+				line-height: 1.55;
+				color: #E6ECF8;
+				white-space: pre-wrap;
+				max-height: 260px;
+				overflow: auto;
+			}
+			#vlive-agy-drawer .vad-status { font-size: 11.5px; color: #B8C2D6; }
 			@keyframes sghPulse {
 				0%, 100% { opacity: 1; }
 				50% { opacity: 0.35; }
@@ -754,36 +833,257 @@
 				<a class="sgh-app ${cur === 'sts-voice-studio' ? 'active' : ''}" href="${root}/voice-studio/">🎙️ STS Voice Studio</a>
 			</div>
 			<div class="sgh-right">
+				<button type="button" class="sgh-ai-btn" id="sghAgyBtn" title="Mở trợ lý AI dùng agy CLI trên máy tính & chọn mô hình">✦ AI (agy CLI)</button>
 				<span class="sgh-db-pill" id="sghDbStatus"><span class="sgh-live-dot"></span> Tự động đồng bộ DB…</span>
-				<button type="button" class="sgh-sync-btn" id="sghSyncNowBtn" title="Đồng bộ dữ liệu mới nhất ngay lập tức">🔄 Đồng bộ ngay</button>
+				<button type="button" class="sgh-sync-btn" id="sghSyncNowBtn" title="Đồng bộ dữ liệu chung giữa cả 4 Studio ngay lập tức">🔄 Đồng bộ</button>
 			</div>
 		`;
 		document.body.prepend(bar);
+
+		// Build Universal agy CLI Drawer for this Studio tool
+		const TOOL_CHIPS = {
+			'script-studio': ['Tóm tắt & gợi ý sửa kịch bản', 'Phân tách cảnh quay (Shot list)', 'Viết thêm thoại tự nhiên hơn'],
+			'auto-video-studio': ['Soát lỗi chính tả phụ đề tiếng Việt', 'Gợi ý 5 hook mở đầu 3 giây viral', 'Viết CTA kêu gọi Follow cuối video'],
+			'vlive-psd-studio': ['Viết prompt Gemini xóa nền sạch', 'Gợi ý bố cục & màu sắc thumbnail', 'Đề xuất tiêu đề chữ nổi bật trên ảnh'],
+			'sts-voice-studio': ['Gắn tag cảm xúc ElevenLabs v3 cho thoại', 'Chỉnh lời thoại đọc tự nhiên hơn', 'Gợi ý mô tả giọng đọc Voice Design'],
+		};
+		const drawer = document.createElement('div');
+		drawer.id = 'vlive-agy-drawer';
+		drawer.className = 'hidden';
+		drawer.innerHTML = `
+			<div class="vad-head">
+				<b>✦ Trợ lý AI — Antigravity CLI (<code>agy</code>)</b>
+				<button type="button" class="vad-close" id="vadCloseBtn">✕</button>
+			</div>
+			<div class="vad-status" id="vadStatusText">Đang kiểm tra kết nối agy CLI…</div>
+			<div class="vad-row">
+				<select id="vadModelSel" title="Chọn mô hình AI cho tất cả 4 Studio">
+					<option value="auto">Tự động (agy mặc định)</option>
+					<option value="gemini-4-neon">Gemini 4 Neon</option>
+					<option value="gemini-4-argon">Gemini 4 Argon</option>
+					<option value="gemini-3.1-pro">Gemini 3.1 Pro</option>
+					<option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+					<option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+					<option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
+					<option value="claude-opus-4-6">Claude Opus 4.6</option>
+					<option value="gpt-oss-120b">GPT-OSS 120B</option>
+				</select>
+			</div>
+			<div class="vad-chips" id="vadChips">
+				${(TOOL_CHIPS[cur] || []).map((c) => `<button type="button" class="vad-chip">${c}</button>`).join('')}
+			</div>
+			<textarea id="vadPrompt" rows="3" placeholder="Nhập yêu cầu cho agy CLI trên máy tính…"></textarea>
+			<div class="vad-row">
+				<button type="button" class="sgh-ai-btn" id="vadRunBtn" style="flex:1;justify-content:center;padding:9px 14px;font-size:13px">▶ Chạy bằng agy CLI</button>
+			</div>
+			<div class="vad-out hidden" id="vadOut"></div>
+		`;
+		document.body.appendChild(drawer);
+
+		const modelSel = document.getElementById('vadModelSel');
+		const statusTxt = document.getElementById('vadStatusText');
+		const outBox = document.getElementById('vadOut');
+		const promptInput = document.getElementById('vadPrompt');
+
+		async function syncAgyUi() {
+			const st = await window.VLIVE_AI.status();
+			const activeModel = st.activeModel || st.config?.model || 'gemini-4-neon';
+			if (modelSel && [...modelSel.options].some((o) => o.value === activeModel)) {
+				modelSel.value = activeModel;
+			}
+			const topBtn = document.getElementById('sghAgyBtn');
+			if (topBtn) topBtn.textContent = `✦ agy: ${activeModel}`;
+			if (statusTxt) {
+				statusTxt.textContent = st.connected
+					? st.installed
+						? `🟢 agy CLI sẵn sàng (${st.binPath}) · Dùng chung cho cả 4 Studio`
+						: `🟡 Đã kết nối Server Local · Chưa tìm thấy lệnh agy trong PATH`
+					: `⚪ Chưa kết nối Server Local (localhost:8790)`;
+			}
+		}
+
+		document.getElementById('sghAgyBtn').onclick = () => {
+			drawer.classList.toggle('hidden');
+			if (!drawer.classList.contains('hidden')) syncAgyUi();
+		};
+		document.getElementById('vadCloseBtn').onclick = () => drawer.classList.add('hidden');
+		drawer.querySelectorAll('.vad-chip').forEach((b) => {
+			b.onclick = () => {
+				promptInput.value = b.textContent;
+				promptInput.focus();
+			};
+		});
+		modelSel.onchange = async () => {
+			await window.VLIVE_AI.setConfig({model: modelSel.value, customModel: '', enabled: true});
+			await syncAgyUi();
+		};
+		document.getElementById('vadRunBtn').onclick = async () => {
+			const p = promptInput.value.trim();
+			if (!p) return promptInput.focus();
+			const runBtn = document.getElementById('vadRunBtn');
+			runBtn.disabled = true;
+			runBtn.textContent = '⏳ Đang chạy agy CLI…';
+			outBox.classList.remove('hidden');
+			outBox.textContent = `Đang chạy agy --model ${modelSel.value} -p "…" trên máy tính…`;
+			try {
+				const res = await window.VLIVE_AI.run(p, {model: modelSel.value});
+				outBox.textContent = `[agy CLI · ${res.model} · ${(res.durationMs / 1000).toFixed(1)}s]\n\n${res.output}`;
+			} catch (err) {
+				outBox.textContent = `❌ ${err.message}`;
+			} finally {
+				runBtn.disabled = false;
+				runBtn.textContent = '▶ Chạy bằng agy CLI';
+			}
+		};
+		syncAgyUi().catch(() => {});
 
 		const refreshDbPill = async () => {
 			const st = await STS_DB.stats();
 			const el = document.getElementById('sghDbStatus');
 			if (el) {
-				const n = st.counts[cur] ?? 0;
+				const total = Object.values(st.counts || {}).reduce((a, b) => a + (Number(b) || 0), 0);
 				const timeStr = new Date(st.lastSyncTime || Date.now()).toLocaleTimeString('vi-VN', {hour12: false});
-				el.innerHTML = `<span class="sgh-live-dot"></span> Live DB · ${n} dự án · cập nhật ${timeStr}`;
+				el.innerHTML = `<span class="sgh-live-dot"></span> Chung 4 Studio · ${total} dự án · ${timeStr}`;
 				el.title = `Engine: ${st.engine}`;
 			}
 		};
 		document.getElementById('sghSyncNowBtn').onclick = async (e) => {
 			const btn = e.currentTarget;
 			btn.textContent = '⏳ Đang đồng bộ…';
+			await syncCrossToolData();
 			await STS_DB.syncNow();
 			await refreshDbPill();
 			btn.textContent = '✅ Đã đồng bộ';
 			setTimeout(() => {
-				btn.textContent = '🔄 Đồng bộ ngay';
+				btn.textContent = '🔄 Đồng bộ';
 			}, 1500);
 		};
 
-		STS_DB.syncNow().then(refreshDbPill).catch(refreshDbPill);
+		syncCrossToolData().then(() => STS_DB.syncNow()).then(refreshDbPill).catch(refreshDbPill);
 		window.addEventListener('sts-db-updated', refreshDbPill);
 	}
+
+	// ---- Universal Antigravity CLI (`agy`) API shared across Hub & all 4 Studio Tools
+	let agyServerCache = null;
+	async function resolveAgyBase() {
+		if (agyServerCache !== null) return agyServerCache;
+		const candidates = location.hostname === 'localhost' || location.hostname === '127.0.0.1' ? ['', 'http://localhost:8790'] : ['http://localhost:8790', ''];
+		for (const base of [...new Set(candidates)]) {
+			try {
+				const ctrl = new AbortController();
+				const to = setTimeout(() => ctrl.abort(), 1400);
+				const r = await fetch(`${base}/api/agy/status`, {signal: ctrl.signal});
+				clearTimeout(to);
+				if (r.ok && (r.headers.get('content-type') || '').includes('application/json')) {
+					agyServerCache = base;
+					return base;
+				}
+			} catch {}
+		}
+		return null;
+	}
+
+	window.VLIVE_AI = {
+		getLocalConfig() {
+			try {
+				return JSON.parse(localStorage.getItem('vlive_agy_config') || 'null') || {enabled: true, model: 'gemini-4-neon', customModel: ''};
+			} catch {
+				return {enabled: true, model: 'gemini-4-neon', customModel: ''};
+			}
+		},
+		async status() {
+			const localCfg = this.getLocalConfig();
+			const base = await resolveAgyBase();
+			if (base === null) {
+				return {connected: false, installed: false, config: localCfg, activeModel: localCfg.customModel || localCfg.model};
+			}
+			try {
+				const j = await fetch(`${base}/api/agy/status`).then((r) => r.json());
+				if (j.config) localStorage.setItem('vlive_agy_config', JSON.stringify(j.config));
+				return {connected: true, ...j};
+			} catch {
+				return {connected: false, installed: false, config: localCfg, activeModel: localCfg.customModel || localCfg.model};
+			}
+		},
+		async setConfig(patch) {
+			const next = {...this.getLocalConfig(), ...patch};
+			localStorage.setItem('vlive_agy_config', JSON.stringify(next));
+			await STS_DB.put('shared', 'settings', 'agy_ai_config', next).catch(() => {});
+			const base = await resolveAgyBase();
+			if (base !== null) {
+				await fetch(`${base}/api/agy/config`, {
+					method: 'PUT',
+					headers: {'Content-Type': 'application/json'},
+					body: JSON.stringify(next),
+				}).catch(() => {});
+			}
+			return next;
+		},
+		async run(prompt, opts = {}) {
+			const base = await resolveAgyBase();
+			if (base === null) {
+				throw new Error('Không kết nối được Server Local (http://localhost:8790) để chạy agy CLI trên máy tính.');
+			}
+			const cfg = this.getLocalConfig();
+			const model = opts.model || cfg.customModel || cfg.model || 'auto';
+			const r = await fetch(`${base}/api/agy/run`, {
+				method: 'POST',
+				headers: {'Content-Type': 'application/json'},
+				body: JSON.stringify({prompt, model}),
+			});
+			const j = await r.json();
+			if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`);
+			return j;
+		},
+	};
+
+	// ---- Unified Cross-Tool Data Bridge (Script Studio <-> Voice Studio <-> Video Studio <-> PSD Studio)
+	let lastSsHash = '';
+	async function syncCrossToolData() {
+		try {
+			// 1. Mirror Script Studio persistent DB into unified STS_DB & bridge Voice-Off lines to STS Voice Studio
+			const rawSs = localStorage.getItem('ss_persistent_db_v1');
+			if (rawSs && rawSs !== lastSsHash) {
+				lastSsHash = rawSs;
+				const parsed = JSON.parse(rawSs);
+				if (parsed && Array.isArray(parsed.projects)) {
+					await STS_DB.put('script-studio', 'store', 'main', parsed);
+					// Auto-bridge each Script Studio project's voice/dialogue lines into STS Voice Studio!
+					const pMap = parsed.p || {};
+					for (const proj of parsed.projects) {
+						const detail = pMap[String(proj.id)] || proj;
+						const voiceLines = detail?.voice?.lines || [];
+						if (Array.isArray(voiceLines) && voiceLines.length > 0) {
+							const mappedLines = voiceLines.map((l, idx) => ({
+								id: idx + 1,
+								ep: l.episode ? `Tập ${l.episode}` : 'Tập 1',
+								scene: l.scene || l.shot || '',
+								stt: String(idx + 1),
+								rawChar: l.character || 'NHÂN VẬT',
+								char: String(l.character || 'NHÂN VẬT').trim().toUpperCase(),
+								text: l.line || '',
+								tagged: l.tagged || l.line || '',
+							}));
+							await STS_DB.put('sts-voice-studio', 'projects', `ss_proj_${proj.id}`, {
+								id: `ss_proj_${proj.id}`,
+								name: `[Script Studio] ${proj.name}`,
+								lines: mappedLines,
+								nextId: mappedLines.length + 1,
+								extraChars: [],
+								mapping: {},
+								defaultEp: 'Tập 1',
+								updatedAt: Date.now(),
+								updatedAtText: new Date().toLocaleString('vi-VN', {hour12: false}),
+							});
+						}
+					}
+				}
+			}
+		} catch {}
+	}
+	setInterval(() => {
+		if (document.visibilityState === 'visible') syncCrossToolData().catch(() => {});
+	}, 4500);
 
 	if (document.readyState === 'loading') {
 		document.addEventListener('DOMContentLoaded', mountGlobalBar);
