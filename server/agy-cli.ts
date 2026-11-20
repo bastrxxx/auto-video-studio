@@ -14,30 +14,44 @@ export type AgyAiConfig = {
 	customPath: string;
 };
 
-export const AGY_MODELS = [
+export type AgyModelItem = {id: string; label: string; family: string};
+
+export const AGY_MODELS: AgyModelItem[] = [
 	{id: 'auto', label: 'Tự động (Mặc định của agy CLI)', family: 'Auto'},
-	{id: 'gemini-4-neon', label: 'Gemini 4 Neon', family: 'Gemini'},
-	{id: 'gemini-4-argon', label: 'Gemini 4 Argon', family: 'Gemini'},
-	{id: 'gemini-3.1-pro', label: 'Gemini 3.1 Pro', family: 'Gemini'},
-	{id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro', family: 'Gemini'},
-	{id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (Nhanh)', family: 'Gemini'},
-	{id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6', family: 'Claude'},
-	{id: 'claude-opus-4-6', label: 'Claude Opus 4.6', family: 'Claude'},
-	{id: 'gpt-oss-120b', label: 'GPT-OSS 120B', family: 'GPT-OSS'},
+	{id: 'gemini-4-neon-medium', label: 'Gemini 4 Neon (Medium)', family: 'Gemini'},
+	{id: 'gemini-4-neon-high', label: 'Gemini 4 Neon (High)', family: 'Gemini'},
+	{id: 'gemini-4-neon-xhigh', label: 'Gemini 4 Neon (XHigh)', family: 'Gemini'},
+	{id: 'gemini-4-neon-low', label: 'Gemini 4 Neon (Low)', family: 'Gemini'},
+	{id: 'gemini-4-carbon-medium', label: 'Gemini 4 Carbon (Medium)', family: 'Gemini'},
+	{id: 'gemini-4-argon-medium', label: 'Gemini 4 Argon (Medium)', family: 'Gemini'},
+	{id: 'gemini-4-hydrogen-medium', label: 'Gemini 4 Hydrogen (Medium)', family: 'Gemini'},
+	{id: 'gemini-3.8-flash-medium', label: 'Gemini 3.8 Flash (Medium)', family: 'Gemini'},
+	{id: 'claude-sonnet-5-5-medium', label: 'Claude Sonnet 5.5 (Medium)', family: 'Claude'},
+	{id: 'claude-opus-5-5-medium', label: 'Claude Opus 5.5 (Medium)', family: 'Claude'},
+	{id: 'gpt-oss-120b-medium', label: 'GPT-OSS 120B (Medium)', family: 'GPT-OSS'},
 ];
 
 const DEFAULT_CONFIG: AgyAiConfig = {
 	enabled: true,
-	model: 'gemini-4-neon',
+	model: 'gemini-4-neon-medium',
 	customModel: '',
 	customPath: '',
 };
 
+const LEGACY_MODEL_MAP: Record<string, string> = {
+	'gemini-4-neon': 'gemini-4-neon-medium',
+	'gemini-4-argon': 'gemini-4-argon-medium',
+	'claude-sonnet-4-6': 'claude-sonnet-5-5-medium',
+	'claude-opus-4-6': 'claude-opus-5-5-medium',
+	'gpt-oss-120b': 'gpt-oss-120b-medium',
+};
+
 export function getAgyConfig(): AgyAiConfig {
 	const saved = dbGetSetting<Partial<AgyAiConfig>>('agy_ai_config') || {};
+	const rawModel = typeof saved.model === 'string' && saved.model.trim() ? saved.model.trim() : DEFAULT_CONFIG.model;
 	return {
 		enabled: saved.enabled !== undefined ? Boolean(saved.enabled) : DEFAULT_CONFIG.enabled,
-		model: typeof saved.model === 'string' && saved.model.trim() ? saved.model.trim() : DEFAULT_CONFIG.model,
+		model: LEGACY_MODEL_MAP[rawModel] || rawModel,
 		customModel: typeof saved.customModel === 'string' ? saved.customModel.trim() : '',
 		customPath: typeof saved.customPath === 'string' ? saved.customPath.trim() : '',
 	};
@@ -59,8 +73,8 @@ export async function findAgyBinary(customPath?: string): Promise<string | null>
 	const home = os.homedir();
 	const candidates = [
 		customPath?.trim(),
-		path.join(home, '.antigravity', 'antigravity', 'bin', 'agy'),
 		path.join(home, '.local', 'bin', 'agy'),
+		path.join(home, '.antigravity', 'antigravity', 'bin', 'agy'),
 		'/opt/homebrew/bin/agy',
 		'/usr/local/bin/agy',
 		'/Applications/Antigravity.app/Contents/Resources/app/bin/agy',
@@ -81,15 +95,47 @@ export async function findAgyBinary(customPath?: string): Promise<string | null>
 	return null;
 }
 
+let cachedModels: AgyModelItem[] | null = null;
+let cachedModelsAt = 0;
+
+async function fetchLiveAgyModels(binPath: string): Promise<AgyModelItem[]> {
+	if (cachedModels && Date.now() - cachedModelsAt < 5 * 60_000) return cachedModels;
+	try {
+		const {stdout} = await execFileAsync(binPath, ['models'], {timeout: 12_000});
+		const clean = stdout.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '').replace(/\r/g, '\n');
+		const list: AgyModelItem[] = [{id: 'auto', label: 'Tự động (Mặc định của agy CLI)', family: 'Auto'}];
+		const seen = new Set<string>(['auto']);
+		for (const rawLine of clean.split('\n')) {
+			const line = rawLine.trim();
+			const m = /^([a-z0-9][a-z0-9._-]+)\s{2,}(.+)$/.exec(line);
+			if (!m) continue;
+			const id = m[1].trim();
+			const label = m[2].trim();
+			if (seen.has(id)) continue;
+			seen.add(id);
+			const family = id.startsWith('claude') ? 'Claude' : id.startsWith('gpt') ? 'GPT-OSS' : 'Gemini';
+			list.push({id, label, family});
+		}
+		if (list.length > 1) {
+			cachedModels = list;
+			cachedModelsAt = Date.now();
+			return list;
+		}
+	} catch {}
+	return AGY_MODELS;
+}
+
 export async function getAgyStatus() {
 	const config = getAgyConfig();
 	const binPath = await findAgyBinary(config.customPath);
 	let version = '';
+	let models = AGY_MODELS;
 	if (binPath) {
 		try {
 			const {stdout} = await execFileAsync(binPath, ['--version'], {timeout: 3500});
 			version = stdout.trim().split('\n')[0] || '';
 		} catch {}
+		models = await fetchLiveAgyModels(binPath);
 	}
 	return {
 		ok: true,
@@ -98,7 +144,7 @@ export async function getAgyStatus() {
 		version,
 		config,
 		activeModel: config.customModel || config.model,
-		models: AGY_MODELS,
+		models,
 	};
 }
 
@@ -110,11 +156,12 @@ export async function runAgyPrompt(
 	const binPath = await findAgyBinary(config.customPath);
 	if (!binPath) {
 		throw new Error(
-			'Chưa tìm thấy lệnh `agy` CLI trên máy tính. Hãy cài Antigravity CLI (hoặc nhập đường dẫn file thực thi `agy` trong phần Cài đặt).',
+			'Chưa tìm thấy lệnh `agy` CLI trên máy tính. Hãy cài Antigravity CLI (`curl -fsSL https://antigravity.google/cli/install.sh | bash`).',
 		);
 	}
-	const chosenModel = (opts.model || config.customModel || config.model || 'auto').trim();
-	const args: string[] = [];
+	const rawModel = (opts.model || config.customModel || config.model || 'auto').trim();
+	const chosenModel = LEGACY_MODEL_MAP[rawModel] || rawModel;
+	const args: string[] = ['--disable-slash-commands'];
 	if (chosenModel && chosenModel !== 'auto') {
 		args.push('--model', chosenModel);
 	}

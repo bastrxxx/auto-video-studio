@@ -887,7 +887,10 @@
 
 		async function syncAgyUi() {
 			const st = await window.VLIVE_AI.status();
-			const activeModel = st.activeModel || st.config?.model || 'gemini-4-neon';
+			if (modelSel && Array.isArray(st.models) && st.models.length) {
+				modelSel.innerHTML = st.models.map((m) => `<option value="${m.id}">${m.label}</option>`).join('');
+			}
+			const activeModel = st.activeModel || st.config?.model || 'gemini-4-neon-medium';
 			if (modelSel && [...modelSel.options].some((o) => o.value === activeModel)) {
 				modelSel.value = activeModel;
 			}
@@ -896,7 +899,7 @@
 			if (statusTxt) {
 				statusTxt.textContent = st.connected
 					? st.installed
-						? `🟢 agy CLI sẵn sàng (${st.binPath}) · Dùng chung cho cả 4 Studio`
+						? `🟢 agy CLI v${st.version || ''} sẵn sàng (${st.binPath}) · Dùng chung cho cả 4 Studio`
 						: `🟡 Đã kết nối Server Local · Chưa tìm thấy lệnh agy trong PATH`
 					: `⚪ Chưa kết nối Server Local (localhost:8790)`;
 			}
