@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<meta name="theme-color" content="#0a0d16" />
+	<meta name="theme-color" content="#090b12" />
 	<title>Vlive Studio — Không gian sáng tạo</title>
 	<link rel="icon" type="image/png" href="./icon.png" />
 	<link rel="apple-touch-icon" href="./icon.png" />
@@ -13,24 +13,32 @@
 	<style>
 		:root {
 			--brand: #2C368A;
-			--brand-hover: #3642A4;
-			--brand-accent: #5B6CE8;
-			--brand-label: #4F60D6;
-			--bg-main: #0A0D15;
-			--bg-sidebar: #080B12;
-			--bg-card: rgba(18, 23, 36, 0.76);
-			--bg-card-hover: rgba(23, 29, 45, 0.88);
-			--border: rgba(255, 255, 255, 0.08);
-			--border-hi: rgba(255, 255, 255, 0.15);
-			--text: #F8FAFC;
-			--text-sub: #94A3B8;
-			--text-muted: #64748B;
+			--brand-mid: #3A47B2;
+			--brand-accent: #7A8BFF;
+			--brand-label: #8192FF;
+			--bg-main: #090A0F;
+			--bg-sidebar: #07080D;
+			--glass-card: linear-gradient(155deg, rgba(255, 255, 255, 0.055) 0%, rgba(19, 22, 34, 0.80) 48%, rgba(13, 15, 24, 0.92) 100%);
+			--glass-card-hover: linear-gradient(155deg, rgba(255, 255, 255, 0.085) 0%, rgba(26, 31, 48, 0.88) 48%, rgba(16, 19, 30, 0.95) 100%);
+			--border: rgba(255, 255, 255, 0.10);
+			--border-hi: rgba(145, 162, 255, 0.34);
+			--specular: inset 0 1px 0 0 rgba(255, 255, 255, 0.14);
+			--text: #FFFFFF;
+			--text-sub: #B8C2D6;
+			--text-muted: #7C879E;
 			--ok: #34D399;
+			--warn: #FBBF24;
+			--radius-lg: 18px;
+			--radius-md: 12px;
+			--radius-sm: 9px;
 		}
 		* {
 			box-sizing: border-box;
 			margin: 0;
 			padding: 0;
+		}
+		html {
+			scroll-behavior: smooth;
 		}
 		body, button, input, select, textarea {
 			font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -38,11 +46,21 @@
 		body {
 			min-height: 100vh;
 			background:
-				radial-gradient(700px circle at 60% 0%, rgba(44, 54, 138, 0.16), transparent 65%),
+				radial-gradient(900px circle at 65% -10%, rgba(44, 54, 138, 0.22), transparent 62%),
+				radial-gradient(650px circle at 12% 85%, rgba(44, 54, 138, 0.12), transparent 58%),
 				var(--bg-main);
 			color: var(--text);
 			line-height: 1.5;
 			-webkit-font-smoothing: antialiased;
+		}
+		code {
+			background: rgba(255, 255, 255, 0.08);
+			border: 1px solid rgba(255, 255, 255, 0.1);
+			padding: 1px 6px;
+			border-radius: 6px;
+			font-size: 0.9em;
+			color: #E2E8F0;
+			font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 		}
 		.hidden {
 			display: none !important;
@@ -56,19 +74,19 @@
 			justify-content: center;
 			padding: 24px;
 			background:
-				radial-gradient(600px circle at 50% 18%, rgba(44, 54, 138, 0.28), transparent 65%),
+				radial-gradient(700px circle at 50% 15%, rgba(44, 54, 138, 0.32), transparent 65%),
 				var(--bg-main);
 		}
 		.login-card {
 			width: 100%;
-			max-width: 420px;
-			border-radius: 22px;
-			padding: 34px 30px;
-			background: linear-gradient(145deg, rgba(255, 255, 255, 0.06) 0%, rgba(18, 23, 36, 0.82) 55%, rgba(12, 16, 26, 0.92) 100%);
-			backdrop-filter: blur(28px) saturate(180%);
-			-webkit-backdrop-filter: blur(28px) saturate(180%);
-			border: 1px solid rgba(255, 255, 255, 0.12);
-			box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 24px 54px rgba(0, 0, 0, 0.65);
+			max-width: 430px;
+			border-radius: 24px;
+			padding: 36px 32px;
+			background: var(--glass-card);
+			backdrop-filter: blur(32px) saturate(190%);
+			-webkit-backdrop-filter: blur(32px) saturate(190%);
+			border: 1px solid rgba(255, 255, 255, 0.14);
+			box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 28px 64px rgba(0, 0, 0, 0.7);
 		}
 		.login-logo {
 			height: 30px;
@@ -77,26 +95,26 @@
 			margin-bottom: 10px;
 		}
 		.login-sub {
-			font-size: 13px;
+			font-size: 13.5px;
 			color: var(--text-sub);
-			margin-bottom: 22px;
+			margin-bottom: 24px;
 		}
 		.field {
 			display: flex;
 			flex-direction: column;
 			gap: 6px;
-			margin-bottom: 14px;
+			margin-bottom: 16px;
 		}
 		.field span {
 			font-size: 12.5px;
 			font-weight: 600;
-			color: #CBD5E1;
+			color: #DCE3F2;
 		}
 		.field input {
-			padding: 11px 14px;
-			border-radius: 11px;
-			border: 1px solid rgba(255, 255, 255, 0.14);
-			background: rgba(8, 11, 18, 0.78);
+			padding: 12px 14px;
+			border-radius: 12px;
+			border: 1px solid rgba(255, 255, 255, 0.16);
+			background: rgba(8, 10, 16, 0.85);
 			color: #FFFFFF;
 			font-size: 14px;
 			outline: none;
@@ -104,27 +122,27 @@
 		}
 		.field input:focus {
 			border-color: var(--brand-accent);
-			box-shadow: 0 0 0 3px rgba(44, 54, 138, 0.38);
+			box-shadow: 0 0 0 3px rgba(44, 54, 138, 0.42);
 		}
 		.login-err {
-			background: rgba(239, 68, 68, 0.14);
-			border: 1px solid rgba(239, 68, 68, 0.35);
+			background: rgba(239, 68, 68, 0.16);
+			border: 1px solid rgba(239, 68, 68, 0.38);
 			color: #FCA5A5;
-			padding: 9px 12px;
-			border-radius: 10px;
-			font-size: 12.5px;
-			margin-bottom: 14px;
+			padding: 10px 13px;
+			border-radius: 11px;
+			font-size: 13px;
+			margin-bottom: 16px;
 		}
 		.login-btn {
 			width: 100%;
-			padding: 12px 18px;
-			border-radius: 11px;
-			border: 1px solid rgba(140, 156, 255, 0.35);
-			background: linear-gradient(180deg, #3743A6 0%, #2C368A 100%);
-			box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 8px 22px rgba(44, 54, 138, 0.55);
+			height: 46px;
+			border-radius: 12px;
+			border: 1px solid rgba(152, 168, 255, 0.45);
+			background: linear-gradient(180deg, #4352C4 0%, #2C368A 100%);
+			box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 10px 26px rgba(44, 54, 138, 0.6);
 			color: #FFFFFF;
 			font-weight: 700;
-			font-size: 14px;
+			font-size: 14.5px;
 			cursor: pointer;
 			transition: filter 0.15s, transform 0.12s;
 		}
@@ -133,31 +151,31 @@
 			transform: translateY(-1px);
 		}
 
-		/* ==================== DASHBOARD SHELL ==================== */
+		/* ==================== FULL HD DASHBOARD SHELL ==================== */
 		.dashboard {
 			display: grid;
-			grid-template-columns: 236px 1fr;
+			grid-template-columns: 256px minmax(0, 1fr);
 			min-height: 100vh;
 		}
 
 		/* ---- LEFT SIDEBAR ---- */
 		.sidebar {
-			background: var(--bg-sidebar);
+			background: linear-gradient(180deg, rgba(11, 13, 20, 0.96) 0%, rgba(7, 8, 13, 0.98) 100%);
 			border-right: 1px solid var(--border);
 			display: flex;
 			flex-direction: column;
-			padding: 20px 14px 16px;
+			padding: 20px 16px 18px;
 			position: sticky;
 			top: 0;
 			height: 100vh;
 		}
 		.sb-brand {
-			padding: 4px 10px 20px;
+			padding: 4px 10px 22px;
 			display: flex;
 			align-items: center;
 		}
 		.sb-brand img {
-			height: 27px;
+			height: 28px;
 			width: auto;
 			display: block;
 		}
@@ -165,13 +183,13 @@
 			display: flex;
 			align-items: center;
 			gap: 11px;
-			padding: 10px 12px;
-			border-radius: 10px;
+			padding: 10px 13px;
+			border-radius: 11px;
 			color: var(--text-sub);
 			text-decoration: none;
 			font-size: 13.5px;
 			font-weight: 600;
-			transition: background 0.15s, color 0.15s;
+			transition: background 0.15s, color 0.15s, border-color 0.15s;
 			border: 1px solid transparent;
 			cursor: pointer;
 			background: transparent;
@@ -187,30 +205,30 @@
 			stroke-linecap: round;
 			stroke-linejoin: round;
 			flex-shrink: 0;
-			opacity: 0.85;
+			opacity: 0.9;
 		}
 		.sb-nav-item:hover {
 			color: #FFFFFF;
-			background: rgba(255, 255, 255, 0.045);
+			background: rgba(255, 255, 255, 0.06);
 		}
 		.sb-nav-item.active {
-			background: var(--brand);
-			border-color: rgba(130, 148, 255, 0.28);
-			box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 6px 18px rgba(44, 54, 138, 0.45);
+			background: linear-gradient(180deg, #3E4CBF 0%, #2C368A 100%);
+			border-color: rgba(152, 168, 255, 0.42);
+			box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 6px 18px rgba(44, 54, 138, 0.5);
 			color: #FFFFFF;
 		}
 		.sb-section-lbl {
-			font-size: 10.5px;
+			font-size: 11px;
 			font-weight: 700;
 			letter-spacing: 0.08em;
 			text-transform: uppercase;
-			color: #526077;
-			padding: 20px 12px 8px;
+			color: #6E7A92;
+			padding: 22px 13px 8px;
 		}
 		.sb-menu {
 			display: flex;
 			flex-direction: column;
-			gap: 3px;
+			gap: 4px;
 		}
 		.sb-footer {
 			margin-top: auto;
@@ -220,42 +238,42 @@
 			padding-top: 16px;
 		}
 		.sb-sync-box {
-			background: rgba(255, 255, 255, 0.03);
+			background: rgba(255, 255, 255, 0.035);
 			border: 1px solid var(--border);
-			border-radius: 12px;
-			padding: 12px 13px;
+			border-radius: 13px;
+			padding: 13px 14px;
 		}
 		.sb-sync-title {
 			display: flex;
 			align-items: center;
 			gap: 6px;
-			font-size: 12px;
+			font-size: 12.5px;
 			font-weight: 700;
 			color: var(--ok);
 			margin-bottom: 3px;
 		}
 		.sb-sync-sub {
 			font-size: 11.5px;
-			color: #7E8B9F;
-			line-height: 1.4;
+			color: var(--text-sub);
+			line-height: 1.45;
 		}
 		.sb-logout {
 			display: flex;
 			align-items: center;
 			gap: 10px;
-			padding: 9px 12px;
-			border-radius: 9px;
-			border: none;
+			padding: 10px 13px;
+			border-radius: 10px;
+			border: 1px solid transparent;
 			background: transparent;
 			color: var(--text-sub);
-			font-size: 13px;
+			font-size: 13.5px;
 			font-weight: 600;
 			cursor: pointer;
 			transition: color 0.15s, background 0.15s;
 		}
 		.sb-logout:hover {
 			color: #FFFFFF;
-			background: rgba(255, 255, 255, 0.05);
+			background: rgba(255, 255, 255, 0.06);
 		}
 		.sb-logout svg {
 			width: 16px;
@@ -265,7 +283,7 @@
 			fill: none;
 		}
 
-		/* ---- RIGHT CONTENT AREA ---- */
+		/* ---- RIGHT CONTENT COLUMN ---- */
 		.content-col {
 			display: flex;
 			flex-direction: column;
@@ -273,105 +291,167 @@
 		}
 		.topbar {
 			height: 64px;
-			padding: 0 38px;
 			border-bottom: 1px solid var(--border);
+			background: rgba(9, 10, 15, 0.78);
+			backdrop-filter: blur(24px) saturate(180%);
+			-webkit-backdrop-filter: blur(24px) saturate(180%);
+			position: sticky;
+			top: 0;
+			z-index: 30;
+		}
+		.topbar-inner {
+			max-width: 1380px;
+			height: 100%;
+			margin: 0 auto;
+			padding: 0 44px;
 			display: flex;
 			align-items: center;
 			justify-content: space-between;
 			gap: 16px;
-			background: rgba(10, 13, 21, 0.72);
-			backdrop-filter: blur(20px);
-			-webkit-backdrop-filter: blur(20px);
-			position: sticky;
-			top: 0;
-			z-index: 20;
 		}
 		.breadcrumb {
 			display: flex;
 			align-items: center;
 			gap: 10px;
-			font-size: 13px;
-			color: #7E8B9F;
+			font-size: 13.5px;
+			color: var(--text-sub);
 			font-weight: 500;
 		}
 		.breadcrumb b {
-			color: #F8FAFC;
+			color: #FFFFFF;
 			font-weight: 700;
 		}
 		.topbar-right {
 			display: flex;
 			align-items: center;
-			gap: 16px;
+			gap: 14px;
+			position: relative;
 		}
 		.guide-btn {
 			display: inline-flex;
 			align-items: center;
 			gap: 7px;
-			background: none;
-			border: none;
-			color: var(--brand-accent);
+			padding: 7px 12px;
+			border-radius: 10px;
+			background: transparent;
+			border: 1px solid transparent;
+			color: var(--brand-label);
 			font-size: 13px;
 			font-weight: 600;
 			cursor: pointer;
-			transition: color 0.15s;
+			transition: background 0.15s, color 0.15s;
 		}
 		.guide-btn:hover {
-			color: #8290FF;
+			background: rgba(129, 146, 255, 0.12);
+			color: #A5B4FF;
 		}
 		.guide-btn svg {
 			width: 16px;
 			height: 16px;
-			stroke: #94A3B8;
-			stroke-width: 1.8;
+			stroke: currentColor;
+			stroke-width: 1.9;
 			fill: none;
+		}
+		.account-wrap {
+			position: relative;
 		}
 		.account-pill {
 			display: inline-flex;
 			align-items: center;
 			gap: 8px;
-			padding: 7px 14px;
-			border-radius: 10px;
-			background: rgba(255, 255, 255, 0.045);
-			border: 1px solid rgba(255, 255, 255, 0.1);
-			box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
-			color: #F1F5F9;
+			padding: 8px 14px;
+			border-radius: 11px;
+			background: rgba(255, 255, 255, 0.055);
+			border: 1px solid rgba(255, 255, 255, 0.13);
+			box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+			color: #FFFFFF;
 			font-size: 13px;
 			font-weight: 600;
 			cursor: pointer;
+			transition: background 0.15s, border-color 0.15s;
+		}
+		.account-pill:hover {
+			background: rgba(255, 255, 255, 0.09);
+			border-color: rgba(255, 255, 255, 0.22);
 		}
 		.account-pill svg {
 			width: 14px;
 			height: 14px;
-			stroke: #94A3B8;
+			stroke: #CBD5E1;
 			stroke-width: 2;
 			fill: none;
 		}
-
-		/* ---- MAIN WORKSPACE BODY ---- */
-		.main-body {
-			max-width: 1080px;
+		.account-menu {
+			position: absolute;
+			right: 0;
+			top: calc(100% + 8px);
+			width: 230px;
+			border-radius: 14px;
+			padding: 8px;
+			background: linear-gradient(155deg, rgba(28, 32, 48, 0.94), rgba(14, 16, 26, 0.98));
+			backdrop-filter: blur(28px);
+			-webkit-backdrop-filter: blur(28px);
+			border: 1px solid rgba(255, 255, 255, 0.15);
+			box-shadow: 0 20px 44px rgba(0, 0, 0, 0.65);
+			display: flex;
+			flex-direction: column;
+			gap: 4px;
+			z-index: 60;
+		}
+		.acct-head {
+			padding: 8px 10px 10px;
+			border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+			margin-bottom: 4px;
+		}
+		.acct-head b { display: block; font-size: 13px; color: #FFFFFF; }
+		.acct-head span { font-size: 11.5px; color: var(--text-sub); }
+		.acct-item {
+			display: flex;
+			align-items: center;
+			gap: 9px;
+			padding: 8px 10px;
+			border-radius: 9px;
+			border: 0;
+			background: transparent;
+			color: #E2E8F0;
+			font-size: 13px;
+			font-weight: 600;
+			cursor: pointer;
+			text-align: left;
 			width: 100%;
-			padding: 36px 38px 44px;
+		}
+		.acct-item:hover { background: rgba(255, 255, 255, 0.08); color: #FFFFFF; }
+		.acct-item.danger { color: #FDA4AF; }
+		.acct-item.danger:hover { background: rgba(239, 68, 68, 0.16); color: #FFFFFF; }
+
+		/* ---- MAIN WORKSPACE BODY (CENTERED FOR FULL HD 1920x1080) ---- */
+		.main-body {
+			max-width: 1380px;
+			width: 100%;
+			margin: 0 auto;
+			padding: 34px 44px 48px;
+		}
+		.hero-block {
+			margin-bottom: 28px;
 		}
 		.hero-eyebrow {
-			font-size: 11px;
+			font-size: 11.5px;
 			font-weight: 700;
-			letter-spacing: 0.08em;
+			letter-spacing: 0.09em;
 			text-transform: uppercase;
 			color: var(--brand-label);
-			margin-bottom: 8px;
+			margin-bottom: 6px;
 		}
 		.hero-title {
 			font-size: 32px;
 			font-weight: 800;
 			letter-spacing: -0.025em;
 			color: #FFFFFF;
-			margin-bottom: 8px;
+			margin-bottom: 6px;
 		}
 		.hero-sub {
-			font-size: 14px;
+			font-size: 14.5px;
 			color: var(--text-sub);
-			margin-bottom: 30px;
 		}
 
 		.sec-head {
@@ -384,10 +464,10 @@
 		.sec-head-left {
 			display: flex;
 			align-items: center;
-			gap: 9px;
+			gap: 10px;
 		}
 		.sec-head-left h2 {
-			font-size: 16.5px;
+			font-size: 17px;
 			font-weight: 700;
 			color: #FFFFFF;
 		}
@@ -395,42 +475,43 @@
 			display: inline-flex;
 			align-items: center;
 			justify-content: center;
-			padding: 2px 8px;
-			border-radius: 6px;
-			background: rgba(255, 255, 255, 0.07);
-			color: #CBD5E1;
+			padding: 2px 9px;
+			border-radius: 7px;
+			background: rgba(255, 255, 255, 0.09);
+			color: #E2E8F0;
 			font-size: 12px;
 			font-weight: 700;
 		}
 		.sec-head-right {
-			font-size: 12.5px;
+			font-size: 13px;
 			color: var(--text-muted);
 		}
 
 		/* ---- 2x2 STUDIO GRID ---- */
 		.studio-grid {
 			display: grid;
-			grid-template-columns: repeat(2, 1fr);
-			gap: 18px;
-			margin-bottom: 20px;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: 20px;
+			margin-bottom: 22px;
 		}
 		.studio-card {
-			background: linear-gradient(155deg, rgba(255, 255, 255, 0.04) 0%, rgba(17, 22, 35, 0.82) 48%, rgba(13, 17, 28, 0.92) 100%);
-			backdrop-filter: blur(26px) saturate(180%);
-			-webkit-backdrop-filter: blur(26px) saturate(180%);
+			background: var(--glass-card);
+			backdrop-filter: blur(28px) saturate(185%);
+			-webkit-backdrop-filter: blur(28px) saturate(185%);
 			border: 1px solid var(--border);
-			box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 16px 36px -12px rgba(0, 0, 0, 0.55);
-			border-radius: 16px;
-			padding: 22px 24px;
+			box-shadow: var(--specular), 0 18px 40px -14px rgba(0, 0, 0, 0.6);
+			border-radius: var(--radius-lg);
+			padding: 24px 26px;
 			display: flex;
 			flex-direction: column;
 			justify-content: space-between;
 			transition: border-color 0.18s ease, transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
 		}
 		.studio-card:hover {
+			background: var(--glass-card-hover);
 			border-color: var(--border-hi);
 			transform: translateY(-2px);
-			box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 22px 44px -12px rgba(0, 0, 0, 0.7);
+			box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 24px 48px -12px rgba(0, 0, 0, 0.72);
 		}
 		.sc-head {
 			display: flex;
@@ -439,21 +520,21 @@
 			margin-bottom: 14px;
 		}
 		.sc-icon {
-			width: 44px;
-			height: 44px;
-			border-radius: 11px;
-			background: rgba(44, 54, 138, 0.28);
-			border: 1px solid rgba(91, 108, 232, 0.24);
-			box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+			width: 46px;
+			height: 46px;
+			border-radius: 12px;
+			background: linear-gradient(145deg, rgba(67, 82, 196, 0.35), rgba(44, 54, 138, 0.45));
+			border: 1px solid rgba(145, 162, 255, 0.35);
+			box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
 			display: flex;
 			align-items: center;
 			justify-content: center;
 			flex-shrink: 0;
-			color: #6374F2;
+			color: #A5B4FF;
 		}
 		.sc-icon svg {
-			width: 20px;
-			height: 20px;
+			width: 21px;
+			height: 21px;
 			stroke: currentColor;
 			stroke-width: 1.9;
 			fill: none;
@@ -461,7 +542,7 @@
 			stroke-linejoin: round;
 		}
 		.sc-cat {
-			font-size: 10.5px;
+			font-size: 11px;
 			font-weight: 700;
 			letter-spacing: 0.06em;
 			text-transform: uppercase;
@@ -469,7 +550,7 @@
 			margin-bottom: 2px;
 		}
 		.sc-title {
-			font-size: 18px;
+			font-size: 18.5px;
 			font-weight: 700;
 			color: #FFFFFF;
 			letter-spacing: -0.01em;
@@ -477,7 +558,7 @@
 		.sc-desc {
 			font-size: 13.5px;
 			color: var(--text-sub);
-			line-height: 1.55;
+			line-height: 1.58;
 			margin-bottom: 16px;
 		}
 		.sc-tags {
@@ -487,11 +568,11 @@
 			margin-bottom: 20px;
 		}
 		.sc-tag {
-			padding: 4px 11px;
-			border-radius: 7px;
-			background: rgba(255, 255, 255, 0.04);
-			border: 1px solid rgba(255, 255, 255, 0.075);
-			color: #CBD5E1;
+			padding: 5px 11px;
+			border-radius: 8px;
+			background: rgba(255, 255, 255, 0.055);
+			border: 1px solid rgba(255, 255, 255, 0.10);
+			color: #DCE3F2;
 			font-size: 12px;
 			font-weight: 600;
 		}
@@ -503,11 +584,11 @@
 		}
 		.sc-btn-open {
 			flex: 1;
-			height: 42px;
-			border-radius: 10px;
-			background: linear-gradient(180deg, #34409E 0%, #2C368A 100%);
-			border: 1px solid rgba(130, 146, 255, 0.28);
-			box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 6px 18px -4px rgba(44, 54, 138, 0.55);
+			height: 43px;
+			border-radius: 11px;
+			background: linear-gradient(180deg, #404EC2 0%, #2C368A 100%);
+			border: 1px solid rgba(152, 168, 255, 0.42);
+			box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 6px 20px -4px rgba(44, 54, 138, 0.6);
 			color: #FFFFFF;
 			font-size: 13.5px;
 			font-weight: 700;
@@ -516,18 +597,19 @@
 			align-items: center;
 			justify-content: center;
 			gap: 8px;
+			cursor: pointer;
 			transition: filter 0.15s, transform 0.12s;
 		}
 		.sc-btn-open:hover {
 			filter: brightness(1.1);
 		}
 		.sc-btn-ext {
-			width: 42px;
-			height: 42px;
-			border-radius: 10px;
-			background: rgba(255, 255, 255, 0.035);
-			border: 1px solid rgba(255, 255, 255, 0.09);
-			color: #94A3B8;
+			width: 43px;
+			height: 43px;
+			border-radius: 11px;
+			background: rgba(255, 255, 255, 0.045);
+			border: 1px solid rgba(255, 255, 255, 0.12);
+			color: #CBD5E1;
 			display: inline-flex;
 			align-items: center;
 			justify-content: center;
@@ -536,8 +618,8 @@
 			flex-shrink: 0;
 		}
 		.sc-btn-ext:hover {
-			background: rgba(255, 255, 255, 0.08);
-			border-color: rgba(255, 255, 255, 0.18);
+			background: rgba(255, 255, 255, 0.1);
+			border-color: rgba(255, 255, 255, 0.24);
 			color: #FFFFFF;
 		}
 		.sc-btn-ext svg {
@@ -548,101 +630,117 @@
 			fill: none;
 		}
 
-		/* ---- DATA & BACKUP SECTION ---- */
-		.data-card {
-			background: linear-gradient(155deg, rgba(255, 255, 255, 0.035) 0%, rgba(17, 22, 35, 0.82) 50%, rgba(13, 17, 28, 0.92) 100%);
-			backdrop-filter: blur(26px) saturate(180%);
-			-webkit-backdrop-filter: blur(26px) saturate(180%);
-			border: 1px solid var(--border);
-			box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 16px 36px -12px rgba(0, 0, 0, 0.5);
-			border-radius: 16px;
-			padding: 20px 24px;
+		/* ---- BOTTOM 2-COLUMN UTILITIES GRID (OPTIMIZED FOR 1920x1080 FULL HD) ---- */
+		.bottom-grid {
+			display: grid;
+			grid-template-columns: 1.38fr 1fr;
+			gap: 20px;
+			align-items: stretch;
 			margin-bottom: 26px;
+		}
+		.data-card {
+			background: var(--glass-card);
+			backdrop-filter: blur(28px) saturate(185%);
+			-webkit-backdrop-filter: blur(28px) saturate(185%);
+			border: 1px solid var(--border);
+			box-shadow: var(--specular), 0 18px 40px -14px rgba(0, 0, 0, 0.55);
+			border-radius: var(--radius-lg);
+			padding: 22px 24px;
+			display: flex;
+			flex-direction: column;
+			justify-content: space-between;
 		}
 		.dc-top {
 			display: flex;
-			align-items: center;
+			align-items: flex-start;
 			justify-content: space-between;
-			gap: 16px;
+			gap: 14px;
 			flex-wrap: wrap;
-			margin-bottom: 18px;
+			margin-bottom: 16px;
 		}
 		.dc-info {
 			display: flex;
 			align-items: center;
-			gap: 14px;
+			gap: 13px;
+			min-width: 0;
 		}
 		.dc-icon {
-			width: 40px;
-			height: 40px;
-			border-radius: 10px;
-			background: rgba(255, 255, 255, 0.04);
-			border: 1px solid rgba(255, 255, 255, 0.08);
+			width: 42px;
+			height: 42px;
+			border-radius: 11px;
+			background: rgba(255, 255, 255, 0.055);
+			border: 1px solid rgba(255, 255, 255, 0.11);
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			color: #94A3B8;
+			color: #CBD5E1;
 			flex-shrink: 0;
 		}
 		.dc-icon svg {
-			width: 18px;
-			height: 18px;
+			width: 19px;
+			height: 19px;
 			stroke: currentColor;
 			stroke-width: 1.8;
 			fill: none;
 		}
 		.dc-info h3 {
-			font-size: 15px;
+			font-size: 15.5px;
 			font-weight: 700;
 			color: #FFFFFF;
-			margin-bottom: 2px;
+			margin-bottom: 3px;
 		}
 		.dc-info p {
 			font-size: 12.5px;
 			color: var(--text-sub);
+			line-height: 1.45;
 		}
 		.dc-status-pill {
 			display: inline-flex;
 			align-items: center;
 			gap: 6px;
-			padding: 6px 14px;
+			padding: 5px 13px;
 			border-radius: 999px;
 			background: rgba(16, 185, 129, 0.14);
-			border: 1px solid rgba(16, 185, 129, 0.25);
+			border: 1px solid rgba(16, 185, 129, 0.30);
 			color: var(--ok);
 			font-size: 12px;
 			font-weight: 700;
+			white-space: nowrap;
 		}
 		.dc-bottom {
 			display: flex;
 			align-items: center;
 			justify-content: space-between;
-			gap: 16px;
+			gap: 14px;
 			flex-wrap: wrap;
+			padding-top: 14px;
+			border-top: 1px solid rgba(255, 255, 255, 0.07);
+			margin-top: auto;
 		}
 		.dc-actions {
 			display: flex;
 			align-items: center;
-			gap: 18px;
+			gap: 14px;
 			flex-wrap: wrap;
 		}
 		.btn-backup {
 			display: inline-flex;
 			align-items: center;
+			justify-content: center;
 			gap: 8px;
 			padding: 9px 16px;
-			border-radius: 9px;
-			background: rgba(255, 255, 255, 0.05);
-			border: 1px solid rgba(255, 255, 255, 0.1);
-			color: #F8FAFC;
+			border-radius: 10px;
+			background: rgba(255, 255, 255, 0.065);
+			border: 1px solid rgba(255, 255, 255, 0.14);
+			color: #FFFFFF;
 			font-size: 13px;
 			font-weight: 600;
 			cursor: pointer;
 			transition: background 0.15s, border-color 0.15s;
 		}
 		.btn-backup:hover {
-			background: rgba(255, 255, 255, 0.09);
-			border-color: rgba(255, 255, 255, 0.18);
+			background: rgba(255, 255, 255, 0.11);
+			border-color: rgba(255, 255, 255, 0.24);
 		}
 		.btn-backup svg, .btn-restore svg {
 			width: 15px;
@@ -655,17 +753,14 @@
 			display: inline-flex;
 			align-items: center;
 			gap: 7px;
-			color: var(--brand-accent);
+			color: var(--brand-label);
 			font-size: 13px;
 			font-weight: 600;
 			cursor: pointer;
 			transition: color 0.15s;
 		}
 		.btn-restore:hover {
-			color: #8290FF;
-		}
-		.btn-restore svg {
-			stroke: #94A3B8;
+			color: #A5B4FF;
 		}
 		.dc-engine {
 			font-size: 12px;
@@ -676,71 +771,63 @@
 		/* ---- AGY CLI AI MODEL SELECTOR & RUNNER ---- */
 		.agy-grid {
 			display: grid;
-			grid-template-columns: 1.15fr 1fr auto;
-			gap: 12px;
+			grid-template-columns: 1fr 1fr auto;
+			gap: 10px;
 			align-items: end;
-			margin-bottom: 14px;
+			margin-bottom: 12px;
 		}
 		.agy-field {
 			display: flex;
 			flex-direction: column;
-			gap: 6px;
+			gap: 5px;
+			min-width: 0;
 		}
 		.agy-field label {
-			font-size: 11.5px;
+			font-size: 11px;
 			font-weight: 700;
 			color: #CBD5E1;
-			letter-spacing: 0.03em;
+			letter-spacing: 0.04em;
 			text-transform: uppercase;
 		}
 		.agy-field select, .agy-field input, .agy-prompt {
 			width: 100%;
-			padding: 10px 13px;
+			padding: 9px 12px;
 			border-radius: 10px;
-			border: 1px solid rgba(255, 255, 255, 0.14);
-			background: rgba(8, 11, 18, 0.85);
+			border: 1px solid rgba(255, 255, 255, 0.16);
+			background: rgba(8, 10, 16, 0.88);
 			color: #FFFFFF;
 			font-size: 13px;
 			outline: none;
 		}
 		.agy-field select:focus, .agy-field input:focus, .agy-prompt:focus {
 			border-color: var(--brand-accent);
-			box-shadow: 0 0 0 3px rgba(44, 54, 138, 0.35);
+			box-shadow: 0 0 0 3px rgba(44, 54, 138, 0.38);
 		}
 		.agy-run-row {
 			display: flex;
 			gap: 10px;
-			align-items: flex-start;
+			align-items: stretch;
+			margin-bottom: 12px;
 		}
 		.agy-prompt {
 			flex: 1;
-			min-height: 44px;
-			max-height: 120px;
+			min-height: 42px;
+			max-height: 110px;
 			resize: vertical;
 			line-height: 1.45;
 		}
 		.agy-output {
-			margin-top: 12px;
+			margin-bottom: 12px;
 			padding: 12px 14px;
 			border-radius: 11px;
-			background: rgba(8, 11, 18, 0.9);
-			border: 1px solid rgba(255, 255, 255, 0.1);
+			background: rgba(8, 10, 16, 0.92);
+			border: 1px solid rgba(255, 255, 255, 0.12);
 			color: #E2E8F0;
 			font-size: 13px;
 			white-space: pre-wrap;
-			max-height: 240px;
+			max-height: 220px;
 			overflow: auto;
 			line-height: 1.55;
-		}
-		.agy-meta-row {
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			gap: 12px;
-			flex-wrap: wrap;
-			margin-top: 10px;
-			font-size: 12px;
-			color: var(--text-sub);
 		}
 		.agy-toggle {
 			display: inline-flex;
@@ -748,6 +835,7 @@
 			gap: 8px;
 			cursor: pointer;
 			color: #E2E8F0;
+			font-size: 12.5px;
 			font-weight: 600;
 		}
 		.agy-toggle input {
@@ -755,9 +843,29 @@
 			width: 15px;
 			height: 15px;
 		}
-		@media (max-width: 780px) {
-			.agy-grid { grid-template-columns: 1fr; }
-			.agy-run-row { flex-direction: column; }
+
+		/* ---- DATA STATS MINI-GRID INSIDE BACKUP CARD ---- */
+		.db-mini-stats {
+			display: grid;
+			grid-template-columns: repeat(2, 1fr);
+			gap: 10px;
+			margin-bottom: 16px;
+		}
+		.db-stat-tile {
+			padding: 10px 12px;
+			border-radius: 11px;
+			background: rgba(255, 255, 255, 0.035);
+			border: 1px solid rgba(255, 255, 255, 0.08);
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 8px;
+			font-size: 12.5px;
+			color: var(--text-sub);
+		}
+		.db-stat-tile b {
+			color: #FFFFFF;
+			font-weight: 700;
 		}
 
 		/* ---- FOOTER ---- */
@@ -767,12 +875,72 @@
 			justify-content: space-between;
 			gap: 12px;
 			flex-wrap: wrap;
-			font-size: 12px;
+			font-size: 12.5px;
 			color: var(--text-muted);
-			padding-top: 4px;
+			padding-top: 6px;
 		}
 
-		@media (max-width: 920px) {
+		/* ---- GLASS MODAL (HƯỚNG DẪN) ---- */
+		.modal-overlay {
+			position: fixed;
+			inset: 0;
+			z-index: 100;
+			background: rgba(4, 6, 10, 0.72);
+			backdrop-filter: blur(8px);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 20px;
+		}
+		.modal-box {
+			width: 100%;
+			max-width: 520px;
+			border-radius: 22px;
+			padding: 26px 28px;
+			background: linear-gradient(155deg, rgba(28, 32, 48, 0.94), rgba(14, 16, 26, 0.98));
+			border: 1px solid rgba(255, 255, 255, 0.16);
+			box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 28px 64px rgba(0, 0, 0, 0.75);
+		}
+		.modal-head {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			margin-bottom: 16px;
+		}
+		.modal-head h3 { font-size: 17px; font-weight: 700; color: #FFFFFF; }
+		.modal-close {
+			width: 32px;
+			height: 32px;
+			border-radius: 9px;
+			border: 1px solid rgba(255, 255, 255, 0.12);
+			background: rgba(255, 255, 255, 0.06);
+			color: #E2E8F0;
+			font-size: 14px;
+			cursor: pointer;
+		}
+		.modal-close:hover { background: rgba(255, 255, 255, 0.14); color: #FFFFFF; }
+		.modal-list {
+			list-style: none;
+			display: flex;
+			flex-direction: column;
+			gap: 12px;
+			font-size: 13.5px;
+			color: var(--text-sub);
+		}
+		.modal-list li {
+			padding: 11px 14px;
+			border-radius: 12px;
+			background: rgba(255, 255, 255, 0.04);
+			border: 1px solid rgba(255, 255, 255, 0.08);
+		}
+		.modal-list b { color: #FFFFFF; display: block; margin-bottom: 2px; }
+
+		@media (max-width: 1220px) {
+			.bottom-grid {
+				grid-template-columns: 1fr;
+			}
+		}
+		@media (max-width: 960px) {
 			.dashboard {
 				grid-template-columns: 1fr;
 			}
@@ -785,9 +953,15 @@
 			.studio-grid {
 				grid-template-columns: 1fr;
 			}
-			.topbar, .main-body {
+			.topbar-inner, .main-body {
 				padding-left: 20px;
 				padding-right: 20px;
+			}
+			.agy-grid {
+				grid-template-columns: 1fr;
+			}
+			.agy-run-row {
+				flex-direction: column;
 			}
 		}
 	</style>
@@ -811,7 +985,7 @@
 		</form>
 	</div>
 
-	<!-- GIAO DIỆN CHÍNH (THEO ĐÚNG THIẾT KẾ MẪU) -->
+	<!-- GIAO DIỆN CHÍNH (TỐI ƯU CHUẨN FULL HD 1920x1080) -->
 	<div class="dashboard hidden" id="hubMain">
 		<!-- CỘT TRÁI: SIDEBAR -->
 		<aside class="sidebar">
@@ -819,7 +993,7 @@
 				<img src="./logo.png" alt="Vlive" />
 			</div>
 
-			<a href="./" class="sb-nav-item active">
+			<button type="button" class="sb-nav-item active" id="sbOverviewBtn">
 				<svg viewBox="0 0 24 24">
 					<rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
 					<rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
@@ -827,7 +1001,7 @@
 					<rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
 				</svg>
 				<span>Tổng quan</span>
-			</a>
+			</button>
 
 			<div class="sb-section-lbl">ỨNG DỤNG STUDIO</div>
 
@@ -864,6 +1038,16 @@
 					</svg>
 					<span>STS Voice Studio</span>
 				</a>
+
+				<div class="sb-section-lbl" style="padding-top:16px">HỆ THỐNG</div>
+
+				<button type="button" class="sb-nav-item" id="sbScrollAiBtn">
+					<svg viewBox="0 0 24 24">
+						<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path>
+						<path d="M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"></path>
+					</svg>
+					<span>Mô hình AI (agy CLI)</span>
+				</button>
 				<button type="button" class="sb-nav-item" id="sbScrollDataBtn">
 					<svg viewBox="0 0 24 24">
 						<ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
@@ -871,13 +1055,6 @@
 						<path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
 					</svg>
 					<span>Dữ liệu &amp; sao lưu</span>
-				</button>
-				<button type="button" class="sb-nav-item" id="sbScrollAiBtn">
-					<svg viewBox="0 0 24 24">
-						<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path>
-						<path d="M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"></path>
-					</svg>
-					<span>Mô hình AI (agy CLI)</span>
 				</button>
 			</nav>
 
@@ -900,33 +1077,48 @@
 		<!-- CỘT PHẢI: MAIN WORKSPACE -->
 		<div class="content-col">
 			<header class="topbar">
-				<div class="breadcrumb">
-					<span>Không gian làm việc</span>
-					<span>→</span>
-					<b>Tổng quan</b>
-				</div>
-				<div class="topbar-right">
-					<button type="button" class="guide-btn" id="hubGuideBtn">
-						<span>Hướng dẫn</span>
-						<svg viewBox="0 0 24 24">
-							<circle cx="12" cy="12" r="10"></circle>
-							<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-							<line x1="12" y1="17" x2="12.01" y2="17"></line>
-						</svg>
-					</button>
-					<div class="account-pill" id="hubAccountPill" title="Đang đăng nhập với tài khoản sts — bấm để đồng bộ ngay">
-						<span>Tài khoản sts</span>
-						<svg viewBox="0 0 24 24">
-							<polyline points="6 9 12 15 18 9"></polyline>
-						</svg>
+				<div class="topbar-inner">
+					<div class="breadcrumb">
+						<span>Không gian làm việc</span>
+						<span>→</span>
+						<b id="breadcrumbCurrent">Tổng quan</b>
+					</div>
+					<div class="topbar-right">
+						<button type="button" class="guide-btn" id="hubGuideBtn">
+							<span>Hướng dẫn</span>
+							<svg viewBox="0 0 24 24">
+								<circle cx="12" cy="12" r="10"></circle>
+								<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+								<line x1="12" y1="17" x2="12.01" y2="17"></line>
+							</svg>
+						</button>
+						<div class="account-wrap">
+							<button type="button" class="account-pill" id="hubAccountPill">
+								<span>Tài khoản sts</span>
+								<svg viewBox="0 0 24 24">
+									<polyline points="6 9 12 15 18 9"></polyline>
+								</svg>
+							</button>
+							<div class="account-menu hidden" id="hubAccountMenu">
+								<div class="acct-head">
+									<b>Admin (sts)</b>
+									<span>Single Sign-On · 4 Studio</span>
+								</div>
+								<button type="button" class="acct-item" id="acctSyncBtn">🔄 Đồng bộ dữ liệu ngay</button>
+								<button type="button" class="acct-item" id="acctBackupBtn">⬇ Xuất sao lưu (.json)</button>
+								<button type="button" class="acct-item danger" id="acctLogoutBtn">⎋ Đăng xuất</button>
+							</div>
+						</div>
 					</div>
 				</div>
 			</header>
 
 			<main class="main-body">
-				<div class="hero-eyebrow">KHÔNG GIAN SÁNG TẠO CỦA BẠN</div>
-				<h1 class="hero-title">Hôm nay, bạn muốn tạo điều gì?</h1>
-				<p class="hero-sub">Từ kịch bản đến thành phẩm. Chọn một Studio và bắt đầu sáng tạo.</p>
+				<div class="hero-block">
+					<div class="hero-eyebrow">KHÔNG GIAN SÁNG TẠO CỦA BẠN</div>
+					<h1 class="hero-title">Hôm nay, bạn muốn tạo điều gì?</h1>
+					<p class="hero-sub">Từ kịch bản đến thành phẩm. Chọn một Studio và bắt đầu sáng tạo.</p>
+				</div>
 
 				<div class="sec-head">
 					<div class="sec-head-left">
@@ -1078,108 +1270,147 @@
 					</article>
 				</section>
 
-				<!-- MÔ HÌNH AI (AGY CLI TRÊN MÁY TÍNH) -->
-				<section class="data-card" id="agyAiCard" style="margin-bottom:20px">
-					<div class="dc-top">
-						<div class="dc-info">
-							<div class="dc-icon" style="background:rgba(44,54,138,0.28);border-color:rgba(91,108,232,0.3);color:#7C8BFF">
-								<svg viewBox="0 0 24 24">
-									<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path>
-									<path d="M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"></path>
-								</svg>
+				<!-- HÀNG DƯỚI 2 CỘT CÂN ĐỐI CHO MÀN HÌNH FULL HD -->
+				<div class="bottom-grid">
+					<!-- CỘT TRÁI: MÔ HÌNH AI (AGY CLI) -->
+					<section class="data-card" id="agyAiCard">
+						<div>
+							<div class="dc-top">
+								<div class="dc-info">
+									<div class="dc-icon" style="background:rgba(44,54,138,0.32);border-color:rgba(145,162,255,0.35);color:#A5B4FF">
+										<svg viewBox="0 0 24 24">
+											<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path>
+											<path d="M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"></path>
+										</svg>
+									</div>
+									<div>
+										<h3>Mô hình AI — Antigravity CLI (<code>agy</code>)</h3>
+										<p>Chọn mô hình AI và chạy trực tiếp lệnh <code>agy -p</code> trên máy tính.</p>
+									</div>
+								</div>
+								<span class="dc-status-pill" id="agyStatusPill">⏳ Đang kiểm tra…</span>
 							</div>
-							<div>
-								<h3>Mô hình AI — Antigravity CLI (<code>agy</code>) trên máy tính</h3>
-								<p>Tự động gọi <code>agy -p --model</code> trực tiếp trên máy local để biên tập video, viết kịch bản &amp; hỏi đáp AI.</p>
+
+							<div class="agy-grid">
+								<div class="agy-field">
+									<label for="agyModelSelect">Mô hình AI</label>
+									<select id="agyModelSelect">
+										<option value="auto">Tự động (agy mặc định)</option>
+										<option value="gemini-4-neon" selected>Gemini 4 Neon</option>
+										<option value="gemini-4-argon">Gemini 4 Argon</option>
+										<option value="gemini-3.1-pro">Gemini 3.1 Pro</option>
+										<option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+										<option value="gemini-2.5-flash">Gemini 2.5 Flash (Nhanh)</option>
+										<option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
+										<option value="claude-opus-4-6">Claude Opus 4.6</option>
+										<option value="gpt-oss-120b">GPT-OSS 120B</option>
+									</select>
+								</div>
+								<div class="agy-field">
+									<label for="agyCustomModel">Model tuỳ chọn</label>
+									<input type="text" id="agyCustomModel" placeholder="VD: gemini-4-neon…" />
+								</div>
+								<button type="button" class="btn-backup" id="agySaveCfgBtn" style="height:39px;white-space:nowrap">💾 Lưu</button>
 							</div>
-						</div>
-						<span class="dc-status-pill" id="agyStatusPill">⏳ Đang kiểm tra agy CLI…</span>
-					</div>
 
-					<div class="agy-grid">
-						<div class="agy-field">
-							<label for="agyModelSelect">Chọn mô hình AI (agy CLI)</label>
-							<select id="agyModelSelect">
-								<option value="auto">Tự động (Mặc định của agy CLI)</option>
-								<option value="gemini-4-neon" selected>Gemini 4 Neon</option>
-								<option value="gemini-4-argon">Gemini 4 Argon</option>
-								<option value="gemini-3.1-pro">Gemini 3.1 Pro</option>
-								<option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-								<option value="gemini-2.5-flash">Gemini 2.5 Flash (Nhanh)</option>
-								<option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
-								<option value="claude-opus-4-6">Claude Opus 4.6</option>
-								<option value="gpt-oss-120b">GPT-OSS 120B</option>
-							</select>
-						</div>
-						<div class="agy-field">
-							<label for="agyCustomModel">Hoặc nhập tên model khác (tuỳ chọn)</label>
-							<input type="text" id="agyCustomModel" placeholder="VD: gemini-4-neon, claude-sonnet-4-6…" />
-						</div>
-						<button type="button" class="btn-backup" id="agySaveCfgBtn" style="height:41px;white-space:nowrap">💾 Lưu mô hình</button>
-					</div>
-
-					<div class="agy-run-row">
-						<textarea class="agy-prompt" id="agyPromptInput" rows="1" placeholder="Nhập yêu cầu để chạy trực tiếp bằng agy CLI trên máy tính (VD: Gợi ý 3 ý tưởng hook TikTok 5 giây)…"></textarea>
-						<button type="button" class="sc-btn-open" id="agyRunBtn" style="flex:0 0 auto;padding:0 18px;height:44px">▶ Chạy agy CLI</button>
-					</div>
-					<div class="agy-output hidden" id="agyOutputBox"></div>
-
-					<div class="agy-meta-row">
-						<label class="agy-toggle">
-							<input type="checkbox" id="agyEnabledToggle" checked />
-							<span>Tự động dùng <code>agy</code> CLI cho các tác vụ AI trong Studio</span>
-						</label>
-						<span id="agyBinInfo">Server Local: http://localhost:8790</span>
-					</div>
-				</section>
-
-				<!-- DỮ LIỆU & SAO LƯU -->
-				<section class="data-card" id="dataBackupCard">
-					<div class="dc-top">
-						<div class="dc-info">
-							<div class="dc-icon">
-								<svg viewBox="0 0 24 24">
-									<ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-									<path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-									<path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-								</svg>
+							<div class="agy-run-row">
+								<textarea class="agy-prompt" id="agyPromptInput" rows="1" placeholder="Nhập yêu cầu chạy thử qua agy CLI (VD: Gợi ý 3 tiêu đề hook TikTok)…"></textarea>
+								<button type="button" class="sc-btn-open" id="agyRunBtn" style="flex:0 0 auto;padding:0 16px;height:42px">▶ Chạy agy</button>
 							</div>
-							<div>
-								<h3>Dữ liệu của bạn, luôn liền mạch.</h3>
-								<p>Kịch bản, video, thiết kế và lời thoại được lưu trong cùng hệ sinh thái.</p>
-							</div>
+							<div class="agy-output hidden" id="agyOutputBox"></div>
 						</div>
-						<span class="dc-status-pill" id="hubAutoSyncPill">✓ Tự động đồng bộ</span>
-					</div>
-					<div class="dc-bottom">
-						<div class="dc-actions">
-							<button type="button" class="btn-backup" id="hubExportDbBtn">
-								<span>Sao lưu dữ liệu</span>
-								<svg viewBox="0 0 24 24">
-									<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-									<polyline points="7 10 12 15 17 10"></polyline>
-									<line x1="12" y1="15" x2="12" y2="3"></line>
-								</svg>
-							</button>
-							<label class="btn-restore">
-								<span>Khôi phục từ .json</span>
-								<svg viewBox="0 0 24 24">
-									<circle cx="12" cy="12" r="9"></circle>
-									<polyline points="9 12 12 9 15 12"></polyline>
-									<line x1="12" y1="15" x2="12" y2="9"></line>
-								</svg>
-								<input type="file" id="hubImportDbInput" accept=".json" hidden />
+
+						<div class="dc-bottom">
+							<label class="agy-toggle">
+								<input type="checkbox" id="agyEnabledToggle" checked />
+								<span>Tự động dùng <code>agy</code> CLI cho các Studio</span>
 							</label>
+							<span class="dc-engine" id="agyBinInfo">localhost:8790</span>
 						</div>
-						<span class="dc-engine" id="hubDbEngineLabel">IndexedDB + SQLite</span>
-					</div>
-				</section>
+					</section>
+
+					<!-- CỘT PHẢI: DỮ LIỆU & SAO LƯU -->
+					<section class="data-card" id="dataBackupCard">
+						<div>
+							<div class="dc-top">
+								<div class="dc-info">
+									<div class="dc-icon">
+										<svg viewBox="0 0 24 24">
+											<ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+											<path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+											<path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+										</svg>
+									</div>
+									<div>
+										<h3>Dữ liệu của bạn, luôn liền mạch.</h3>
+										<p>Lưu và đồng bộ xuyên suốt cả 4 Studio.</p>
+									</div>
+								</div>
+								<span class="dc-status-pill" id="hubAutoSyncPill">✓ Tự động đồng bộ</span>
+							</div>
+
+							<div class="db-mini-stats">
+								<div class="db-stat-tile"><span>Script Studio</span><b id="stat-script">Đồng bộ 2 chiều</b></div>
+								<div class="db-stat-tile"><span>Auto Video</span><b id="stat-video">0 dự án</b></div>
+								<div class="db-stat-tile"><span>Vlive PSD</span><b id="stat-psd">0 dự án</b></div>
+								<div class="db-stat-tile"><span>STS Voice</span><b id="stat-voice">0 dự án</b></div>
+							</div>
+						</div>
+
+						<div class="dc-bottom">
+							<div class="dc-actions">
+								<button type="button" class="btn-backup" id="hubExportDbBtn">
+									<span>Sao lưu dữ liệu</span>
+									<svg viewBox="0 0 24 24">
+										<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+										<polyline points="7 10 12 15 17 10"></polyline>
+										<line x1="12" y1="15" x2="12" y2="3"></line>
+									</svg>
+								</button>
+								<label class="btn-restore">
+									<span>Khôi phục .json</span>
+									<svg viewBox="0 0 24 24">
+										<circle cx="12" cy="12" r="9"></circle>
+										<polyline points="9 12 12 9 15 12"></polyline>
+										<line x1="12" y1="15" x2="12" y2="9"></line>
+									</svg>
+									<input type="file" id="hubImportDbInput" accept=".json" hidden />
+								</label>
+							</div>
+							<span class="dc-engine" id="hubDbEngineLabel">IndexedDB + SQLite</span>
+						</div>
+					</section>
+				</div>
 
 				<footer class="hub-footer">
 					<span>© Vlive Studio</span>
 					<span>Một tài khoản · Bốn Studio · Không gián đoạn</span>
 				</footer>
 			</main>
+		</div>
+	</div>
+
+	<!-- MODAL HƯỚNG DẪN (GLASS UI) -->
+	<div class="modal-overlay hidden" id="hubGuideModal">
+		<div class="modal-box">
+			<div class="modal-head">
+				<h3>Hướng dẫn sử dụng Vlive Studio</h3>
+				<button type="button" class="modal-close" id="hubGuideCloseBtn">✕</button>
+			</div>
+			<ul class="modal-list">
+				<li>
+					<b>1. Đăng nhập một lần (Single Sign-On)</b>
+					Tài khoản <code>sts</code> / <code>1111</code> dùng chung cho cả 4 Studio mà không cần đăng nhập lại khi chuyển công cụ.
+				</li>
+				<li>
+					<b>2. Đồng bộ 2 chiều &amp; lưu dữ liệu tự động</b>
+					Script Studio đồng bộ 2 chiều trực tiếp với <code>bastrxxx/script-studio</code>. Các dự án Video, PSD và Voice được lưu liên tục vào IndexedDB + SQLite.
+				</li>
+				<li>
+					<b>3. Chạy mô hình AI bằng Antigravity CLI (<code>agy</code>)</b>
+					Chọn mô hình AI yêu thích ở khối <b>Mô hình AI</b> để chạy trực tiếp lệnh <code>agy -p --model</code> trên máy tính của bạn.
+				</li>
+			</ul>
 		</div>
 	</div>
 
@@ -1191,6 +1422,14 @@
 			const form = document.getElementById('hubLoginForm');
 			const errEl = document.getElementById('hubLoginErr');
 
+			function setActiveNav(btnId, title) {
+				for (const id of ['sbOverviewBtn', 'sbScrollAiBtn', 'sbScrollDataBtn']) {
+					document.getElementById(id)?.classList.toggle('active', id === btnId);
+				}
+				const bc = document.getElementById('breadcrumbCurrent');
+				if (bc) bc.textContent = title;
+			}
+
 			async function refreshHubStats() {
 				if (!window.STS_DB) return;
 				const st = await window.STS_DB.stats();
@@ -1198,6 +1437,13 @@
 				if (engineLbl) {
 					engineLbl.textContent = st.sqliteConnected ? 'IndexedDB + SQLite' : 'IndexedDB + Cloud Sync';
 				}
+				const setTxt = (id, v) => {
+					const el = document.getElementById(id);
+					if (el) el.textContent = v;
+				};
+				setTxt('stat-video', `${st.counts['auto-video-studio'] || 0} dự án`);
+				setTxt('stat-psd', `${st.counts['vlive-psd-studio'] || 0} dự án`);
+				setTxt('stat-voice', `${st.counts['sts-voice-studio'] || 0} dự án`);
 			}
 
 			function updateAuthView() {
@@ -1223,16 +1469,92 @@
 				}
 			};
 
-			document.getElementById('hubLogoutBtn').onclick = () => {
+			const doLogout = () => {
 				window.STS_SSO?.logout();
+				document.getElementById('hubAccountMenu')?.classList.add('hidden');
 				updateAuthView();
 			};
+			document.getElementById('hubLogoutBtn').onclick = doLogout;
+			document.getElementById('acctLogoutBtn').onclick = doLogout;
 
-			document.getElementById('sbScrollDataBtn').onclick = () => {
-				document.getElementById('dataBackupCard')?.scrollIntoView({behavior: 'smooth', block: 'center'});
+			document.getElementById('sbOverviewBtn').onclick = () => {
+				setActiveNav('sbOverviewBtn', 'Tổng quan');
+				window.scrollTo({top: 0, behavior: 'smooth'});
 			};
 			document.getElementById('sbScrollAiBtn').onclick = () => {
+				setActiveNav('sbScrollAiBtn', 'Mô hình AI (agy CLI)');
 				document.getElementById('agyAiCard')?.scrollIntoView({behavior: 'smooth', block: 'center'});
+			};
+			document.getElementById('sbScrollDataBtn').onclick = () => {
+				setActiveNav('sbScrollDataBtn', 'Dữ liệu & sao lưu');
+				document.getElementById('dataBackupCard')?.scrollIntoView({behavior: 'smooth', block: 'center'});
+			};
+
+			// Guide Glass Modal
+			const guideModal = document.getElementById('hubGuideModal');
+			document.getElementById('hubGuideBtn').onclick = () => guideModal.classList.remove('hidden');
+			document.getElementById('hubGuideCloseBtn').onclick = () => guideModal.classList.add('hidden');
+			guideModal.onclick = (e) => {
+				if (e.target === guideModal) guideModal.classList.add('hidden');
+			};
+
+			// Account Dropdown Menu
+			const acctPill = document.getElementById('hubAccountPill');
+			const acctMenu = document.getElementById('hubAccountMenu');
+			acctPill.onclick = (e) => {
+				e.stopPropagation();
+				acctMenu.classList.toggle('hidden');
+			};
+			document.addEventListener('click', () => acctMenu.classList.add('hidden'));
+			document.getElementById('acctSyncBtn').onclick = async () => {
+				acctMenu.classList.add('hidden');
+				const pill = document.getElementById('hubAutoSyncPill');
+				if (pill) pill.textContent = '⏳ Đang đồng bộ…';
+				await window.STS_DB?.syncNow();
+				await refreshHubStats();
+				if (pill) pill.textContent = '✓ Tự động đồng bộ';
+			};
+
+			const exportBackup = async () => {
+				const dump = {};
+				for (const app of ['script-studio', 'auto-video-studio', 'vlive-psd-studio', 'sts-voice-studio']) {
+					dump[app] = {
+						projects: await window.STS_DB.list(app, 'projects'),
+						store: await window.STS_DB.list(app, 'store'),
+						jobs: await window.STS_DB.list(app, 'jobs'),
+					};
+				}
+				const blob = new Blob([JSON.stringify({exportedAt: new Date().toISOString(), dump}, null, 2)], {type: 'application/json'});
+				const a = document.createElement('a');
+				a.href = URL.createObjectURL(blob);
+				a.download = `vlive-studio-backup-${new Date().toISOString().slice(0, 10)}.json`;
+				a.click();
+			};
+			document.getElementById('hubExportDbBtn').onclick = exportBackup;
+			document.getElementById('acctBackupBtn').onclick = () => {
+				acctMenu.classList.add('hidden');
+				exportBackup();
+			};
+
+			document.getElementById('hubImportDbInput').onchange = async (e) => {
+				const f = e.target.files[0];
+				if (!f) return;
+				try {
+					const json = JSON.parse(await f.text());
+					const dump = json.dump || {};
+					for (const [app, cols] of Object.entries(dump)) {
+						for (const [col, items] of Object.entries(cols || {})) {
+							for (const item of items || []) {
+								if (item?.id) await window.STS_DB.put(app, col, item.id, item.data || item);
+							}
+						}
+					}
+					await refreshHubStats();
+					alert('Đã khôi phục dữ liệu Database thành công!');
+				} catch (err) {
+					alert('File sao lưu không hợp lệ: ' + err.message);
+				}
+				e.target.value = '';
 			};
 
 			// ---- Local Antigravity CLI (agy) AI Engine & Model Selector
@@ -1262,7 +1584,6 @@
 				const custom = document.getElementById('agyCustomModel');
 				const tog = document.getElementById('agyEnabledToggle');
 
-				// Restore local preference immediately
 				try {
 					const saved = JSON.parse(localStorage.getItem('vlive_agy_config') || 'null');
 					if (saved) {
@@ -1275,12 +1596,12 @@
 				const st = await findAgyServer();
 				if (!st) {
 					if (pill) {
-						pill.textContent = '○ Chưa bật Server Local (localhost:8790)';
+						pill.textContent = '○ Chưa bật Server Local';
 						pill.style.background = 'rgba(245, 158, 11, 0.14)';
 						pill.style.borderColor = 'rgba(245, 158, 11, 0.35)';
 						pill.style.color = '#FBBF24';
 					}
-					if (binInfo) binInfo.textContent = 'Chạy server local trên máy để gọi lệnh agy CLI trực tiếp';
+					if (binInfo) binInfo.textContent = 'Bật server localhost:8790 để chạy agy CLI';
 					return;
 				}
 
@@ -1293,20 +1614,20 @@
 
 				if (st.installed) {
 					if (pill) {
-						pill.textContent = `✓ agy CLI sẵn sàng · ${st.activeModel || 'auto'}`;
+						pill.textContent = `✓ agy · ${st.activeModel || 'auto'}`;
 						pill.style.background = 'rgba(16, 185, 129, 0.14)';
-						pill.style.borderColor = 'rgba(16, 185, 129, 0.25)';
+						pill.style.borderColor = 'rgba(16, 185, 129, 0.30)';
 						pill.style.color = '#34D399';
 					}
-					if (binInfo) binInfo.textContent = `Binary: ${st.binPath}${st.version ? ` (${st.version})` : ''}`;
+					if (binInfo) binInfo.textContent = `${st.binPath}`;
 				} else {
 					if (pill) {
-						pill.textContent = '⚠ Chưa tìm thấy lệnh agy trên máy';
+						pill.textContent = '⚠ Chưa cài agy CLI';
 						pill.style.background = 'rgba(245, 158, 11, 0.14)';
 						pill.style.borderColor = 'rgba(245, 158, 11, 0.35)';
 						pill.style.color = '#FBBF24';
 					}
-					if (binInfo) binInfo.textContent = 'Đã kết nối Server Local — Hãy cài Antigravity CLI (`agy`) vào PATH trên máy tính';
+					if (binInfo) binInfo.textContent = 'Đã kết nối localhost:8790 · chưa thấy lệnh agy';
 				}
 			}
 
@@ -1328,13 +1649,13 @@
 						if (r.ok) {
 							btn.textContent = '✅ Đã lưu';
 							await loadAgyStatus();
-							setTimeout(() => (btn.textContent = '💾 Lưu mô hình'), 1500);
+							setTimeout(() => (btn.textContent = '💾 Lưu'), 1500);
 							return;
 						}
 					} catch {}
 				}
-				btn.textContent = '✅ Đã lưu (Browser)';
-				setTimeout(() => (btn.textContent = '💾 Lưu mô hình'), 1500);
+				btn.textContent = '✅ Đã lưu';
+				setTimeout(() => (btn.textContent = '💾 Lưu'), 1500);
 			};
 
 			document.getElementById('agyRunBtn').onclick = async () => {
@@ -1348,13 +1669,13 @@
 				}
 				const model = (document.getElementById('agyCustomModel')?.value || '').trim() || document.getElementById('agyModelSelect')?.value || 'auto';
 				btn.disabled = true;
-				btn.textContent = '⏳ Đang chạy agy…';
+				btn.textContent = '⏳ Đang chạy…';
 				outEl.classList.remove('hidden');
-				outEl.textContent = `Đang gửi câu lệnh tới agy CLI (--model ${model}) trên máy tính…`;
+				outEl.textContent = `Đang gửi câu lệnh tới agy CLI (--model ${model})…`;
 				try {
 					if (agyBaseUrl === null) await findAgyServer();
 					if (agyBaseUrl === null) {
-						throw new Error('Không kết nối được tới Server Local (http://localhost:8790). Hãy khởi động server trên máy tính trước.');
+						throw new Error('Không kết nối được tới Server Local (http://localhost:8790).');
 					}
 					const r = await fetch(`${agyBaseUrl}/api/agy/run`, {
 						method: 'POST',
@@ -1368,61 +1689,12 @@
 					outEl.textContent = `❌ ${err.message}`;
 				} finally {
 					btn.disabled = false;
-					btn.textContent = '▶ Chạy agy CLI';
+					btn.textContent = '▶ Chạy agy';
 				}
-			};
-			loadAgyStatus();
-
-			document.getElementById('hubGuideBtn').onclick = () => {
-				alert('Hướng dẫn sử dụng Vlive Studio:\n\n1. Chọn 1 trong 4 bộ công cụ Studio để bắt đầu làm việc.\n2. Toàn bộ dự án, kịch bản, timeline video, file PSD và lời thoại AI đều được lưu & đồng bộ tự động.\n3. Bạn có thể chuyển nhanh giữa các công cụ trên thanh điều hướng hoặc xuất file sao lưu (.json) tại mục Dữ liệu & sao lưu.');
-			};
-
-			document.getElementById('hubAccountPill').onclick = async () => {
-				const pill = document.getElementById('hubAutoSyncPill');
-				if (pill) pill.textContent = '⏳ Đang đồng bộ…';
-				await window.STS_DB?.syncNow();
-				await refreshHubStats();
-				if (pill) pill.textContent = '✓ Tự động đồng bộ';
-			};
-
-			document.getElementById('hubExportDbBtn').onclick = async () => {
-				const dump = {};
-				for (const app of ['script-studio', 'auto-video-studio', 'vlive-psd-studio', 'sts-voice-studio']) {
-					dump[app] = {
-						projects: await window.STS_DB.list(app, 'projects'),
-						store: await window.STS_DB.list(app, 'store'),
-						jobs: await window.STS_DB.list(app, 'jobs'),
-					};
-				}
-				const blob = new Blob([JSON.stringify({exportedAt: new Date().toISOString(), dump}, null, 2)], {type: 'application/json'});
-				const a = document.createElement('a');
-				a.href = URL.createObjectURL(blob);
-				a.download = `vlive-studio-backup-${new Date().toISOString().slice(0, 10)}.json`;
-				a.click();
-			};
-
-			document.getElementById('hubImportDbInput').onchange = async (e) => {
-				const f = e.target.files[0];
-				if (!f) return;
-				try {
-					const json = JSON.parse(await f.text());
-					const dump = json.dump || {};
-					for (const [app, cols] of Object.entries(dump)) {
-						for (const [col, items] of Object.entries(cols || {})) {
-							for (const item of items || []) {
-								if (item?.id) await window.STS_DB.put(app, col, item.id, item.data || item);
-							}
-						}
-					}
-					await refreshHubStats();
-					alert('Đã khôi phục dữ liệu Database thành công!');
-				} catch (err) {
-					alert('File sao lưu không hợp lệ: ' + err.message);
-				}
-				e.target.value = '';
 			};
 
 			updateAuthView();
+			loadAgyStatus();
 			window.addEventListener('sts-db-updated', () => {
 				if (window.STS_SSO?.isAuthed()) refreshHubStats();
 			});
