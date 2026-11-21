@@ -33,10 +33,14 @@ patch_app() {
     const fs = require("fs");
     const OLD = `function _v(){if(typeof window<"u"&&/\\.github\\.io$/i.test(window.location.hostname)){const e=window.location.pathname.split("/").filter(Boolean)[0];if(e&&e!=="login"&&e!=="settings"&&e!=="p")return\`/\${e}\`}return"/"}`;
     const NEW = `function _v(){if(typeof window<"u"){const m=window.location.pathname.match(/^(.*?\\/script-studio)(?:\\/|$)/);if(m)return m[1];if(/\\.github\\.io$/i.test(window.location.hostname)){const e=window.location.pathname.split("/").filter(Boolean)[0];if(e&&e!=="login"&&e!=="settings"&&e!=="p")return\`/\${e}\`}}return"/"}`;
+    const OLD_CLI = `if(R.type==="antigravity_cli")throw new Error("Antigravity CLI (agy) chạy trực tiếp trên backend máy chủ local (không chạy từ trình duyệt tĩnh). Hãy bật server Script Studio trên máy bạn (localhost:5180) để gọi agy.");`;
+    const NEW_CLI = `if(R.type==="antigravity_cli"){if(typeof window<"u"&&window.VLIVE_AI){const res=await window.VLIVE_AI.run("Trả lời ngắn gọn 1 câu: Kết nối Antigravity CLI thành công.",{model:d(R.models)[0]||"auto"});return{ok:!0,reply:\`✅ \${res.output} (\${res.model} · \${(res.durationMs/1e3).toFixed(1)}s)\`}}throw new Error("Antigravity CLI (agy) chạy trực tiếp trên server local (localhost:8790). Hãy bật server trên máy bạn để gọi agy.")}`;
     for (const p of process.argv.slice(1)) {
       if (!fs.existsSync(p)) continue;
-      const s = fs.readFileSync(p, "utf8");
-      if (s.includes(OLD)) fs.writeFileSync(p, s.replace(OLD, NEW));
+      let s = fs.readFileSync(p, "utf8");
+      if (s.includes(OLD)) s = s.replace(OLD, NEW);
+      if (s.includes(OLD_CLI)) s = s.replace(OLD_CLI, NEW_CLI);
+      fs.writeFileSync(p, s);
     }
   ' "$@"
 }

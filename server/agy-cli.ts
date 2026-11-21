@@ -162,7 +162,10 @@ export async function runAgyPrompt(
 	const rawModel = (opts.model || config.customModel || config.model || 'auto').trim();
 	const chosenModel = LEGACY_MODEL_MAP[rawModel] || rawModel;
 	const args: string[] = ['--disable-slash-commands'];
-	if (chosenModel && chosenModel !== 'auto') {
+	const EFFORTS = new Set(['low', 'medium', 'high', 'xhigh', 'max']);
+	if (chosenModel && EFFORTS.has(chosenModel.toLowerCase())) {
+		args.push('--effort', chosenModel.toLowerCase());
+	} else if (chosenModel && chosenModel !== 'auto' && chosenModel !== 'default') {
 		args.push('--model', chosenModel);
 	}
 	args.push('-p', prompt);
