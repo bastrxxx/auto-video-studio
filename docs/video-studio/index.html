@@ -72,13 +72,27 @@
 						<span class="step-dot">1</span>
 						<div>
 							<b>Video &amp; Thiết lập</b>
-							<small>Tải clip, nhập ý tưởng, chọn phong cách</small>
+							<small>Tải clip, Fashion 20-30s, AGY CLI</small>
+						</div>
+					</button>
+					<button class="view-tab" data-view="dna" id="tabDna">
+						<span class="step-dot">🧬</span>
+						<div>
+							<b>Học DNA Kênh TikTok</b>
+							<small>Copy link 1 hoặc nhiều kênh → học DNA</small>
+						</div>
+					</button>
+					<button class="view-tab" data-view="voiceover" id="tabVoiceover">
+						<span class="step-dot">🎙️</span>
+						<div>
+							<b>Voice Over &amp; Hook 3s</b>
+							<small>AI suy luận 3 phương án + tạo giọng đọc</small>
 						</div>
 					</button>
 					<button class="view-tab" data-view="editor" id="tabEditor" disabled>
 						<span class="step-dot">2</span>
 						<div>
-							<b>Chỉnh sửa Phụ đề &amp; Timeline</b>
+							<b>Chỉnh sửa &amp; Timeline</b>
 							<small id="tabEditorSub">Chỉnh từng câu theo giây &amp; kéo thả</small>
 						</div>
 					</button>
@@ -86,7 +100,7 @@
 						<span class="step-dot">3</span>
 						<div>
 							<b>Kết quả &amp; Tải MP4</b>
-							<small id="tabResultSub">Xem bản xuất cuối &amp; thống kê</small>
+							<small id="tabResultSub">Xem bản xuất cuối &amp; Hook 3s</small>
 						</div>
 					</button>
 				</nav>
@@ -164,10 +178,52 @@
 						<label class="brief">
 							<div class="brief-head">
 								<b>💡 Ý tưởng &amp; mong muốn cho video</b>
-								<span class="muted">AI &amp; Whisper sẽ dựa vào đây để nhận đúng từ vựng, chọn cảnh và biên tập</span>
+								<span class="muted">AI (AGY CLI) &amp; Whisper sẽ dựa vào đây để nhận đúng từ vựng, chọn cảnh và biên tập</span>
 							</div>
-							<textarea data-opt="brief" rows="2" placeholder="VD: Video TikTok bóng đá vui nhộn của sinh viên Phenikaa. Giữ các câu hài hước, nhịp nhanh, viết đúng tên riêng: Phenikaa, Hòa, Hải…"></textarea>
+							<textarea data-opt="brief" rows="2" placeholder="VD: Video thời trang 25s giới thiệu set blazer linen tôn dáng đi làm &amp; đi chơi. Nhịp cắt nhanh, khoe form dáng 3s đầu…"></textarea>
 						</label>
+
+						<!-- Fashion 20-30s + AGY CLI + TikTok DNA + Hook 3s + Voice Over Strip -->
+						<div class="fashion-strip">
+							<div class="fs-head">
+								<div class="fs-title">
+									<b>👗 Chế độ Thời trang 20–30s &amp; AGY CLI Engine</b>
+									<span class="pill" id="agyStatusPill">🤖 Đang kiểm tra AGY CLI…</span>
+								</div>
+								<div class="fs-quick-links">
+									<button type="button" class="ghost sm" id="openDnaTabBtn">🧬 Học DNA Kênh TikTok</button>
+									<button type="button" class="ghost sm" id="openVoTabBtn">🎙️ Tạo Voice Over &amp; Hook 3s</button>
+								</div>
+							</div>
+							<div class="fs-grid">
+								<label class="fs-field">
+									<span>🤖 Model AGY CLI tối ưu</span>
+									<select id="agyModelSelect"></select>
+								</label>
+								<label class="fs-field">
+									<span>⏱ Thời lượng Thời trang mục tiêu</span>
+									<select id="optTargetRange">
+										<option value="20-30">🔥 20–30 giây (Tối ưu TikTok Thời trang)</option>
+										<option value="15-20">⚡ 15–20 giây (Siêu nhanh / Lookbook)</option>
+										<option value="30-45">📖 30–45 giây (Review chi tiết)</option>
+										<option value="auto">Tự do (theo video gốc)</option>
+									</select>
+								</label>
+								<label class="fs-field">
+									<span>🧬 DNA Kênh TikTok đang áp dụng</span>
+									<select id="optDnaProfile"><option value="">— Chưa áp dụng DNA kênh —</option></select>
+								</label>
+								<div class="fs-toggles">
+									<label class="tog"><input type="checkbox" id="optFashionMode" checked /> 👗 Bật AI Đạo diễn Thời trang 20–30s</label>
+									<label class="tog"><input type="checkbox" id="optVoMuteOriginal" /> 🔇 Tắt tiếng gốc khi chạy Voice Over</label>
+								</div>
+								<label class="fs-field fs-full">
+									<span>⚡ Mô tả &amp; Chỉ đạo Hook 3 giây đầu (0.0s – 3.0s)</span>
+									<input type="text" id="optHook3sDesc" placeholder="VD: 0-1.5s lộ toàn thân set blazer + flash cut; 1.5-3s cận chất vải linen + chữ 'SET ĐỒ HACK DÁNG 25S'" />
+								</label>
+							</div>
+							<div class="setup-vo-badge hidden" id="setupVoBadge"></div>
+						</div>
 
 						<div class="styles" id="styles"></div>
 
@@ -269,6 +325,109 @@
 							<span class="muted" id="startHint">Chọn video để bắt đầu</span>
 						</div>
 					</div>
+				</div>
+
+				<!-- ==================== VIEW DNA: HỌC DNA KÊNH TIKTOK ==================== -->
+				<div class="view-pane hidden" id="viewDna">
+					<div class="card">
+						<div class="card-head">
+							<h2><span class="num">🧬</span> Học DNA Dựng Video từ Kênh TikTok</h2>
+							<span class="muted">Dán link 1 hoặc nhiều kênh TikTok → Hệ thống đo nhịp cắt FFmpeg &amp; giải mã DNA bằng AGY CLI</span>
+						</div>
+
+						<div class="dna-form">
+							<label class="col">
+								<b>Link kênh TikTok (mỗi dòng 1 link hoặc @handle — hỗ trợ học cùng lúc nhiều kênh)</b>
+								<textarea id="dnaUrlsInput" rows="3" placeholder="https://www.tiktok.com/@kenhthoitrang1&#10;https://www.tiktok.com/@kenhthoitrang2&#10;@localbrand_vn"></textarea>
+							</label>
+							<div class="dna-form-row">
+								<label class="col">
+									<span>Tên hồ sơ DNA (tuỳ chọn)</span>
+									<input type="text" id="dnaNameInput" placeholder="VD: DNA Lookbook Minimalist Hàn Quốc" />
+								</label>
+								<label class="col">
+									<span>Ngách thời trang</span>
+									<input type="text" id="dnaNicheInput" value="Thời trang 20-30s (Lookbook / Phối đồ / Review)" />
+								</label>
+								<label class="col">
+									<span>Model AGY CLI phân tích</span>
+									<select id="dnaModelSelect"></select>
+								</label>
+							</div>
+							<div class="dna-form-row">
+								<label class="col">
+									<span>Ghi chú thêm về phong cách kênh (tuỳ chọn)</span>
+									<input type="text" id="dnaNotesInput" placeholder="VD: Kênh hay cắt theo beat nhạc mạnh, mở đầu zoom vào chất vải rồi xoay người…" />
+								</label>
+								<label class="col">
+									<span>Hoặc tải thêm 1–5 video TikTok mẫu (.mp4) để đo FFmpeg chính xác từng cú cắt</span>
+									<input type="file" id="dnaRefFiles" accept="video/*" multiple />
+								</label>
+							</div>
+							<div class="actions" style="margin-top:8px">
+								<button type="button" class="primary big" id="dnaLearnBtn">🧬 Bắt đầu học DNA kênh</button>
+								<span class="muted hidden" id="dnaLearnStatus"></span>
+							</div>
+						</div>
+					</div>
+
+					<div class="dna-workspace">
+						<div class="card dna-lib-card">
+							<div class="card-head">
+								<h3>📚 Thư viện DNA đã học</h3>
+								<button type="button" class="ghost sm" id="dnaMergeBtn" disabled title="Chọn ít nhất 2 hồ sơ DNA để hợp nhất">🔀 Hợp nhất các kênh đã chọn</button>
+							</div>
+							<div id="dnaList"></div>
+						</div>
+						<div class="card dna-detail-card" id="dnaDetail"></div>
+					</div>
+				</div>
+
+				<!-- ==================== VIEW VOICEOVER: AI VOICE OVER & HOOK 3S ==================== -->
+				<div class="view-pane hidden" id="viewVoiceover">
+					<div class="card">
+						<div class="card-head">
+							<h2><span class="num">🎙️</span> AI Voice Over &amp; Đạo diễn Hook 3 giây đầu</h2>
+							<span class="muted">Viết vài câu ý tưởng → AGY CLI phân tích, suy luận và đề xuất 3 phương án tối ưu nhất cho video Thời trang 20–30s</span>
+						</div>
+
+						<div class="vo-form">
+							<label class="col">
+								<b>Viết 1–3 câu mô tả sản phẩm / outfit / thông điệp của bạn</b>
+								<textarea id="voUserInput" rows="3" placeholder="VD: Chiếc váy linen dáng chữ A mới ra mắt, mặc lên cực kỳ gọn eo và mát, che khuyết điểm bắp tay tốt, đi làm hay đi biển đều hợp, giá đang ưu đãi 490k."></textarea>
+							</label>
+							<div class="dna-form-row">
+								<label class="col">
+									<span>Thời lượng mục tiêu</span>
+									<select id="voTargetSec">
+										<option value="20">20 giây (~60 từ)</option>
+										<option value="25" selected>25 giây (~75 từ — Tối ưu nhất)</option>
+										<option value="28">28 giây (~85 từ)</option>
+										<option value="30">30 giây (~92 từ)</option>
+									</select>
+								</label>
+								<label class="col">
+									<span>Áp dụng DNA kênh TikTok (tuỳ chọn)</span>
+									<select id="voDnaSelect"><option value="">— Chưa áp dụng DNA kênh —</option></select>
+								</label>
+								<label class="col">
+									<span>Phong cách thương hiệu</span>
+									<input type="text" id="voBrandStyle" placeholder="VD: Thanh lịch tối giản / Streetwear trẻ trung / Sang chảnh" />
+								</label>
+								<label class="col">
+									<span>Model AGY CLI suy luận</span>
+									<select id="voModelSelect"></select>
+								</label>
+							</div>
+							<div class="actions" style="margin-top:8px">
+								<button type="button" class="primary big" id="voGenerateBtn">🧠 Phân tích &amp; Đề xuất 3 Phương án VO tối ưu</button>
+								<button type="button" class="ghost big" id="hook3sAnalyzeBtn">⚡ Phân tích &amp; Thiết kế Hook 3s đầu</button>
+							</div>
+						</div>
+					</div>
+
+					<div class="hidden" id="hook3sStandaloneBox"></div>
+					<div class="hidden" id="voResultsWrap"></div>
 				</div>
 
 				<!-- ==================== VIEW 2: TRÌNH CHỈNH SỬA PHỤ ĐỀ & TIMELINE ==================== -->
@@ -382,6 +541,7 @@
 								<button class="ghost" id="backToEditorBtn">✂️ Quay lại chỉnh sửa</button>
 							</div>
 						</div>
+						<div class="hidden" id="resultHook3sBox" style="margin-bottom:14px"></div>
 						<div class="result">
 							<video id="outVideo" controls playsinline></video>
 							<div class="stats" id="stats"></div>

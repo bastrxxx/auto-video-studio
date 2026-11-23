@@ -22,6 +22,8 @@ import {addClips, cancelJob, clearAllJobs, createJob, deleteJob, getJob, getTime
 import {downloadWhisperModel, type WhisperModel} from '@remotion/install-whisper-cpp';
 import {buildWebBundle} from './build-web.js';
 import {getAgyStatus, runAgyPrompt, saveAgyConfig} from './agy-cli.js';
+import {analyzeHook3s, generateVoiceOverOptions, synthesizeVoiceOverAudio} from './fashion-director.js';
+import {deleteDnaProfile, getDnaProfile, learnTikTokChannelsDNA, listDnaProfiles, mergeDnaProfiles} from './tiktok-dna.js';
 import {availableModels, whisperReady} from './pipeline/transcribe.js';
 import {listMusic, resetSfxCache} from './pipeline/plan.js';
 import {getBundle, prepareBrowser} from './pipeline/render.js';
@@ -309,6 +311,112 @@ app.post('/api/jobs/:id/cancel', wrap((req) => cancelJob(req.params.id)));
 app.delete('/api/jobs/:id', wrap((req) => deleteJob(req.params.id)));
 app.delete('/api/jobs', wrap(() => clearAllJobs()));
 
+// ---- TikTok Channel DNA Learner (1 or multiple channels + optional local reference videos)
+app.get('/api/dna', wrap(() => ({ok: true, items: listDnaProfiles()})));
+
+app.get(
+	'/api/dna/:id',
+	wrap((req) => {
+		const item = getDnaProfile(req.params.id);
+		if (!item) throw new Error('Không tìm thấy hồ sơ DNA');
+		return {ok: true, item};
+	}),
+);
+
+app.post(
+	'/api/dna/learn',
+	upload.array('referenceVideos', 8),
+	wrap(async (req) => {
+		const rawUrls = req.body?.urls;
+		let urls: string[] = [];
+		if (Array.isArray(rawUrls)) {
+			urls = rawUrls.map(String);
+		} else if (typeof rawUrls === 'string') {
+			try {
+				const parsed = JSON.parse(rawUrls);
+				urls = Array.isArray(parsed) ? parsed.map(String) : rawUrls.split(/[\n,;]+/);
+			} catch {
+				urls = rawUrls.split(/[\n,;]+/);
+			}
+		}
+		const files = (req.files as Express.Multer.File[] | undefined) || [];
+		const localReferenceFiles = files.map((f) => ({
+			path: f.path,
+			name: Buffer.from(f.originalname, 'latin1').toString('utf8'),
+		}));
+		try {
+			const dna = await learnTikTokChannelsDNA({
+				urls: urls.map((u) => u.trim()).filter(Boolean),
+				name: typeof req.body?.name === 'string' ? req.body.name : undefined,
+				niche: typeof req.body?.niche === 'string' ? req.body.niche : undefined,
+				notes: typeof req.body?.notes === 'string' ? req.body.notes : undefined,
+				model: typeof req.body?.model === 'string' ? req.body.model : undefined,
+				maxVideosPerChannel: Number(req.body?.maxVideosPerChannel) || 12,
+				localReferenceFiles,
+			});
+			return {ok: true, item: dna, items: listDnaProfiles()};
+		} finally {
+			for (const f of files) fs.rmSync(f.path, {force: true});
+		}
+	}),
+);
+
+app.post(
+	'/api/dna/merge',
+	wrap(async (req) => {
+		const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(String) : [];
+		const dna = await mergeDnaProfiles(ids, req.body?.name, req.body?.model);
+		return {ok: true, item: dna, items: listDnaProfiles()};
+	}),
+);
+
+app.delete(
+	'/api/dna/:id',
+	wrap((req) => {
+		deleteDnaProfile(req.params.id);
+		return {ok: true, items: listDnaProfiles()};
+	}),
+);
+
+// ---- Fashion 20-30s Voice Over Reasoner & 3-Second Hook Analyzer (AGY CLI)
+app.post(
+	'/api/fashion/voiceover',
+	wrap(async (req) => {
+		return await generateVoiceOverOptions({
+			userInput: String(req.body?.userInput || ''),
+			targetSec: Number(req.body?.targetSec) || 25,
+			dnaProfileId: typeof req.body?.dnaProfileId === 'string' ? req.body.dnaProfileId : undefined,
+			brandStyle: typeof req.body?.brandStyle === 'string' ? req.body.brandStyle : undefined,
+			model: typeof req.body?.model === 'string' ? req.body.model : undefined,
+		});
+	}),
+);
+
+app.post(
+	'/api/fashion/voiceover/tts',
+	wrap(async (req) => {
+		return await synthesizeVoiceOverAudio({
+			text: String(req.body?.text || ''),
+			voiceName: typeof req.body?.voiceName === 'string' ? req.body.voiceName : undefined,
+			rateWpm: Number(req.body?.rateWpm) || 195,
+		});
+	}),
+);
+
+app.post(
+	'/api/fashion/hook3s',
+	wrap(async (req) => {
+		return await analyzeHook3s({
+			brief: typeof req.body?.brief === 'string' ? req.body.brief : undefined,
+			transcript: typeof req.body?.transcript === 'string' ? req.body.transcript : undefined,
+			voiceOverScript: typeof req.body?.voiceOverScript === 'string' ? req.body.voiceOverScript : undefined,
+			dnaProfileId: typeof req.body?.dnaProfileId === 'string' ? req.body.dnaProfileId : undefined,
+			model: typeof req.body?.model === 'string' ? req.body.model : undefined,
+		});
+	}),
+);
+
+app.use('/voiceovers', express.static(path.join(PATHS.data, 'voiceovers')));
 app.use('/files', express.static(PATHS.jobs, {fallthrough: false}));
 app.use('/sfx', express.static(PATHS.sfx));
 app.use('/music', express.static(PATHS.music));

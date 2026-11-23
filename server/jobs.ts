@@ -16,6 +16,8 @@ import {renderPlan} from './pipeline/render.js';
 import {orderClips} from './pipeline/order.js';
 import {analyzeClipColor} from './pipeline/color.js';
 import {DEFAULT_COLOR, type ColorAdjust} from '../shared/color.js';
+import {findAgyBinary, getAgyConfig} from './agy-cli.js';
+import {getDnaProfile} from './tiktok-dna.js';
 import {
 	dbClearJobs,
 	dbDeleteDoc,
@@ -489,24 +491,42 @@ const runJob = async (id: string) => {
 		const cutArgs = {words: tl.words, silences: tl.silences, duration: tl.duration, opts, overrides, clipBounds};
 		let cut = decideCuts(cutArgs);
 
-		// 5. AI (optional)
+		// 5. AI (AGY CLI local model or Gemini API) — with Fashion 20-30s + TikTok Channel DNA + 3s Hook + Voice Over alignment
 		let ai: AiResult | null = null;
-		const aiKey = `${job.clips.map((c) => c.transcriptKey).join(',')}|${ord.order.join(',')}|${opts.maxDuration}|${opts.style}|${hash(opts.brief || '')}`;
-		if (opts.useAI && opts.geminiKey && tl.words.length) {
+		const dna = opts.dnaProfileId ? getDnaProfile(opts.dnaProfileId) : null;
+		const effectiveMaxDur =
+			opts.maxDuration > 0
+				? opts.maxDuration
+				: opts.fashionMode && opts.targetDurationRange === '20-30'
+					? dna?.editingPreset.maxDuration || 28
+					: 0;
+		const agyCfg = getAgyConfig();
+		const agyBin = agyCfg.enabled ? await findAgyBinary(agyCfg.customPath) : null;
+		const aiKey = `${job.clips.map((c) => c.transcriptKey).join(',')}|${ord.order.join(',')}|${effectiveMaxDur}|${opts.style}|${opts.fashionMode ? 'F' : 'G'}|${opts.dnaProfileId || ''}|${hash((opts.brief || '') + (opts.hook3sDescription || '') + (opts.voiceOverScript || ''))}`;
+		if (opts.useAI && (opts.geminiKey || agyBin) && tl.words.length) {
 			ai = job.aiKey === aiKey ? readJson<AiResult>(id, 'ai.json') : null;
 			if (!ai) {
-				step('ai', 0.2, 'AI (Gemini) đang đọc kịch bản...');
+				step('ai', 0.2, agyBin ? `AGY CLI (${agyCfg.customModel || agyCfg.model}) đang phân tích video...` : 'AI (Gemini) đang đọc kịch bản...');
 				try {
-					ai = await runGemini(opts.geminiKey, tl.words, cut.sentences, {language, maxDuration: opts.maxDuration, style: opts.style, brief: opts.brief});
+					ai = await runGemini(opts.geminiKey, tl.words, cut.sentences, {
+						language,
+						maxDuration: effectiveMaxDur,
+						style: opts.style,
+						brief: opts.brief,
+						fashionMode: opts.fashionMode,
+						dna,
+						hook3sDescription: opts.hook3sDescription,
+						voiceOverScript: opts.voiceOverScript,
+					});
 					writeJson(id, 'ai.json', ai);
 					job.aiKey = aiKey;
-					log(`AI: bỏ ${ai.dropSentences?.length || 0} câu, ${ai.beats?.length || 0} hiệu ứng, tiêu đề: “${ai.title || '-'}”`);
+					log(`AI: bỏ ${ai.dropSentences?.length || 0} câu, ${ai.beats?.length || 0} hiệu ứng, hook 3s: “${ai.hook3s?.title || ai.title || '-'}”`);
 				} catch (e) {
 					log(`AI lỗi, dùng thuật toán thay thế: ${(e as Error).message.slice(0, 160)}`);
 					ai = null;
 				}
 			}
-			if (ai) cut = decideCuts({...cutArgs, ai: {dropSentences: ai.dropSentences, keepSentences: ai.keepSentences}});
+			if (ai) cut = decideCuts({...cutArgs, opts: {...opts, maxDuration: effectiveMaxDur}, ai: {dropSentences: ai.dropSentences, keepSentences: ai.keepSentences}});
 		}
 		step('analyze', 1);
 		writeJson(id, 'cut.json', {
@@ -708,6 +728,7 @@ export const jobDetail = (id: string) => {
 		clips?: {id: string; name: string; w0: number; w1: number}[];
 	}>(id, 'cut.json');
 	const plan = readJson<EditPlan>(id, 'plan.json');
+	const ai = readJson<AiResult>(id, 'ai.json');
 	// words in the last edit order
 	const words: {i: number; k: string; t: string; s: number; e: number}[] = [];
 	const order = job.order?.ids || job.clips.map((c) => c.id);
@@ -729,6 +750,7 @@ export const jobDetail = (id: string) => {
 		sentences: sameKeys ? cut!.sentences.map((s) => ({id: s.id, w0: s.w0, w1: s.w1})) : [],
 		clipRanges: sameKeys ? cut!.clips || [] : [],
 		takes: cut?.takes || [],
+		hook3s: ai?.hook3s || null,
 		planSummary: plan
 			? {
 					groups: plan.captions.groups.length,

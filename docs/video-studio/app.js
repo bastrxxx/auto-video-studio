@@ -1,6 +1,7 @@
 import {scanFaces} from './face.js';
 import {openEditor, refreshEditor, editorDirty, closeEditor, pauseEditor, fitTimelineZoom} from './editor/editor.js';
 import {handleBrowserApi, handleBrowserUpload} from './browser-engine.js';
+import {initFashionStudio, renderResultHook3s, syncFashionSetupUI} from './fashion-dna.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -196,6 +197,17 @@ async function enterStudio(user) {
 		bindButtons();
 	}
 	syncOptions();
+	await initFashionStudio({
+		api,
+		getApiBase: () => API_BASE,
+		getOpts: () => state.opts,
+		applyPatch: (patch) => {
+			Object.assign(state.opts, patch);
+			syncOptions();
+			saveOpts();
+		},
+		switchView,
+	});
 	await refreshHistory();
 	const last = location.hash.slice(1);
 	if (last) loadJob(last).catch(() => undefined);
@@ -206,10 +218,13 @@ function switchView(view) {
 	state.view = view;
 	$$('#viewTabs .view-tab').forEach((b) => b.classList.toggle('on', b.dataset.view === view));
 	$('#viewSetup').classList.toggle('hidden', view !== 'setup');
+	$('#viewDna')?.classList.toggle('hidden', view !== 'dna');
+	$('#viewVoiceover')?.classList.toggle('hidden', view !== 'voiceover');
 	$('#viewEditor').classList.toggle('hidden', view !== 'editor');
 	$('#viewResult').classList.toggle('hidden', view !== 'result');
 	if (view !== 'editor') pauseEditor();
 	if (view !== 'result') $('#outVideo')?.pause();
+	if (view === 'setup') syncFashionSetupUI();
 	if (view === 'editor') {
 		setTimeout(() => fitTimelineZoom(), 40);
 	}
@@ -773,6 +788,7 @@ async function showResult(job) {
 
 	const d = await api(`/api/jobs/${job.id}/detail`);
 	state.detail = d;
+	renderResultHook3s(d.hook3s || null);
 	state.manual = new Map();
 	for (const k of job.overrides?.cut || []) state.manual.set(k, false);
 	for (const k of job.overrides?.keep || []) state.manual.set(k, true);

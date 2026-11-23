@@ -3,8 +3,27 @@ import path from 'node:path';
 import os from 'node:os';
 
 const TMP_FILE = path.join(os.tmpdir(), 'sts-unified-studio-cloud-db.json');
+const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '';
+const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '';
 
-function loadStore() {
+async function loadStore() {
+	if (KV_URL && KV_TOKEN) {
+		try {
+			const r = await fetch(`${KV_URL}/get/sts_unified_cloud_db_v1`, {
+				headers: {Authorization: `Bearer ${KV_TOKEN}`},
+			});
+			if (r.ok) {
+				const j = await r.json();
+				const raw = typeof j.result === 'string' ? JSON.parse(j.result) : j.result;
+				if (Array.isArray(raw)) {
+					const map = new Map();
+					for (const rec of raw) if (rec && rec.pk) map.set(rec.pk, rec);
+					globalThis.__STS_CLOUD_DB__ = map;
+					return map;
+				}
+			}
+		} catch {}
+	}
 	if (globalThis.__STS_CLOUD_DB__) return globalThis.__STS_CLOUD_DB__;
 	let map = new Map();
 	try {
@@ -21,16 +40,27 @@ function loadStore() {
 	return map;
 }
 
-function saveStore(map) {
+async function saveStore(map) {
+	const arr = [...map.values()];
 	try {
-		fs.writeFileSync(TMP_FILE, JSON.stringify([...map.values()]));
+		fs.writeFileSync(TMP_FILE, JSON.stringify(arr));
 	} catch {}
+	if (KV_URL && KV_TOKEN) {
+		try {
+			await fetch(`${KV_URL}/set/sts_unified_cloud_db_v1`, {
+				method: 'POST',
+				headers: {Authorization: `Bearer ${KV_TOKEN}`, 'Content-Type': 'application/json'},
+				body: JSON.stringify(JSON.stringify(arr)),
+			});
+		} catch {}
+	}
 }
 
 function computeStats(map) {
 	const apps = {
 		'script-studio': 0,
 		'auto-video-studio': 0,
+		'video-studio': 0,
 		'vlive-psd-studio': 0,
 		'sts-voice-studio': 0,
 	};
@@ -39,14 +69,15 @@ function computeStats(map) {
 		if (apps[r.app] !== undefined) apps[r.app]++;
 	}
 	return {
-		engine: 'Vercel Cloud Realtime DB + IndexedDB',
-		file: 'cloud://sts-unified-studio-db',
+		engine: KV_URL ? 'Vercel Cloud KV + IndexedDB' : 'Vercel Cloud Realtime DB + IndexedDB',
+		file: KV_URL ? 'kv://sts-unified-studio-db' : 'cloud://sts-unified-studio-db',
 		jobs: apps['auto-video-studio'],
+		dna: apps['video-studio'],
 		apps,
 	};
 }
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
 	res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
 	res.setHeader('Access-Control-Allow-Credentials', 'true');
 	res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
@@ -56,7 +87,7 @@ export default function handler(req, res) {
 		return;
 	}
 
-	const store = loadStore();
+	const store = await loadStore();
 	const url = new URL(req.url || '/api/hub/stats', `http://${req.headers.host || 'localhost'}`);
 	const pathname = url.pathname.replace(/\/+$/, '');
 
@@ -89,7 +120,7 @@ export default function handler(req, res) {
 				changed = true;
 			}
 		}
-		if (changed) saveStore(store);
+		if (changed) await saveStore(store);
 		const records = [...store.values()].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 		res.status(200).json({ok: true, records, db: computeStats(store), serverTime: Date.now()});
 		return;
@@ -138,7 +169,7 @@ export default function handler(req, res) {
 				_deleted: false,
 				updatedAt,
 			});
-			saveStore(store);
+			await saveStore(store);
 			res.status(200).json({ok: true, updatedAt, db: computeStats(store)});
 			return;
 		}
@@ -147,7 +178,7 @@ export default function handler(req, res) {
 			const pk = `${app}:${collection}:${id}`;
 			const updatedAt = Date.now();
 			store.set(pk, {pk, app, collection, id: String(id), data: null, _deleted: true, updatedAt});
-			saveStore(store);
+			await saveStore(store);
 			res.status(200).json({ok: true, updatedAt, db: computeStats(store)});
 			return;
 		}
@@ -159,7 +190,7 @@ export default function handler(req, res) {
 					store.set(pk, {...r, data: null, _deleted: true, updatedAt});
 				}
 			}
-			saveStore(store);
+			await saveStore(store);
 			res.status(200).json({ok: true, updatedAt, db: computeStats(store)});
 			return;
 		}

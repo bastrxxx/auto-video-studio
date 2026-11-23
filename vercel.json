@@ -10,6 +10,18 @@
 			"destination": "/api/hub"
 		},
 		{
+			"source": "/api/dna",
+			"destination": "/api/fashion"
+		},
+		{
+			"source": "/api/dna/:path*",
+			"destination": "/api/fashion"
+		},
+		{
+			"source": "/api/fashion/:path*",
+			"destination": "/api/fashion"
+		},
+		{
 			"source": "/script-studio/login",
 			"destination": "/script-studio/index.html"
 		},

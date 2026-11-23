@@ -106,6 +106,113 @@ export type Look = {
 	vignette?: number; // 0..1
 };
 
+export type VoiceOverTrack = {
+	src: string;
+	volume: number;
+	muteOriginal: boolean;
+	originalVolume: number;
+	script?: string;
+	voiceName?: string;
+};
+
+export type Hook3sBlueprint = {
+	title: string;
+	visualAction: string;
+	openingLine: string;
+	textOverlay: string;
+	cameraMove: string;
+	sfxCue: string;
+	retentionScore: number;
+	whyItWorks: string;
+	alternatives?: {label: string; openingLine: string; visualAction: string; textOverlay: string}[];
+};
+
+export type TikTokChannelDNA = {
+	id: string;
+	name: string;
+	channels: {url: string; handle: string; videoCount: number; sampledVideos: number}[];
+	learnedAt: number;
+	modelUsed: string;
+	niche: string;
+	summary: string;
+	metrics: {
+		avgDurationSec: number;
+		targetRangeSec: [number, number];
+		avgShotLengthSec: number;
+		cutsPer10Sec: number;
+		hookWindowSec: number;
+		wordsPerSec: number;
+		musicEnergy: 'chill' | 'medium' | 'high';
+	};
+	hook3sFormula: {
+		pattern: string;
+		visualPattern: string;
+		textStyle: string;
+		audioImpact: string;
+		examples: string[];
+	};
+	pacingCurve: {
+		intro0to3s: string;
+		body3to20s: string;
+		outro20to30s: string;
+	};
+	shotGrammar: string[];
+	editingPreset: {
+		style: CaptionStyleId;
+		pace: 'natural' | 'fast' | 'ultra';
+		transition: ClipTransition;
+		zoom: number;
+		sfx: 'off' | 'restrained' | 'standard' | 'rich';
+		wordsPerGroup: number;
+		maxDuration: number;
+		accent: string;
+		colorMood: string;
+	};
+	viralRules: string[];
+	avoidRules: string[];
+	rawVideos?: {
+		id: string;
+		handle: string;
+		url: string;
+		title: string;
+		duration: number;
+		views?: number;
+		likes?: number;
+		comments?: number;
+		sceneCuts?: number;
+		avgShotSec?: number;
+	}[];
+};
+
+export type VoiceOverOption = {
+	id: string;
+	angle: string;
+	badge: string;
+	estimatedSec: number;
+	wordCount: number;
+	reasoning: string;
+	hook3s: {
+		line: string;
+		visualHint: string;
+		overlayText: string;
+		emotionTag: string;
+	};
+	fullScript: string;
+	beats: {
+		timeRange: string;
+		phase: 'hook' | 'problem' | 'reveal' | 'detail' | 'cta';
+		spoken: string;
+		emotionTag: string;
+		shotSuggestion: string;
+		cutHint: string;
+	}[];
+	cta: string;
+	recommendedStyle: CaptionStyleId;
+	recommendedPace: 'natural' | 'fast' | 'ultra';
+	recommendedTransition: ClipTransition;
+	voiceTone: string;
+};
+
 export type EditPlan = {
 	version: 1;
 	fps: number;
@@ -131,6 +238,7 @@ export type EditPlan = {
 	beats: Beat[];
 	sfx: SfxCue[];
 	music: {src: string; volume: number; duckVolume: number; speech: [number, number][]} | null;
+	voiceOver?: VoiceOverTrack | null;
 	look: Look;
 	grades?: (Grade | null)[]; // SVG color grades referenced by segments
 	brand: {accent: string; ink: string; font: string};
@@ -172,25 +280,33 @@ export type JobOptions = {
 	brief: string; // the idea of the video, in the user's words — guides the AI and whisper
 	aiFixCaptions: boolean; // let Gemini correct the transcript (spelling, diacritics, names)
 	color: ColorSettings; // auto color + manual adjustments / filter (CapCut-style)
+	// Fashion 20-30s + Hook 3s + Voice Over + TikTok Channel DNA
+	fashionMode: boolean; // chuyên sâu dựng video thời trang 20-30s
+	targetDurationRange: '20-30' | '15-20' | '30-45' | 'auto';
+	dnaProfileId: string; // ID của TikTok Channel DNA đang áp dụng
+	hook3sDescription: string; // mô tả/chỉ đạo hook 3 giây đầu
+	voiceOverScript: string; // kịch bản Voice Over đã chọn
+	voiceOverAudioUrl: string; // đường dẫn file audio Voice Over (nếu có)
+	voiceOverMuteOriginal: boolean; // tắt/hạ tiếng gốc khi chạy Voice Over
 };
 
 export const DEFAULT_OPTIONS: JobOptions = {
 	format: '9:16',
 	fit: 'fill',
-	platform: 'all',
-	style: 'clean',
+	platform: 'tiktok',
+	style: 'editorial',
 	language: 'vi',
 	model: 'large-v3',
 	removeSilence: true,
 	pace: 'fast',
 	removeFillers: true,
 	removeRetakes: true,
-	maxDuration: 0,
+	maxDuration: 28,
 	captions: true,
 	wordsPerGroup: 3,
 	captionSize: 1,
 	accent: '',
-	zoom: 1,
+	zoom: 1.15,
 	emoji: true,
 	bigNumbers: true,
 	sfx: 'standard',
@@ -208,4 +324,11 @@ export const DEFAULT_OPTIONS: JobOptions = {
 	brief: '',
 	aiFixCaptions: true,
 	color: {...DEFAULT_COLOR},
+	fashionMode: true,
+	targetDurationRange: '20-30',
+	dnaProfileId: '',
+	hook3sDescription: '',
+	voiceOverScript: '',
+	voiceOverAudioUrl: '',
+	voiceOverMuteOriginal: false,
 };

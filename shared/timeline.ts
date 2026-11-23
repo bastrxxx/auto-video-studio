@@ -467,6 +467,15 @@ export const compileTimeline = (tl: Timeline, ctx: CompileCtx): EditPlan => {
 		beats,
 		sfx: sfx.sort((a, b) => a.at - b.at),
 		music,
+		voiceOver: opts.voiceOverAudioUrl
+			? {
+					src: opts.voiceOverAudioUrl,
+					volume: 1,
+					muteOriginal: Boolean(opts.voiceOverMuteOriginal),
+					originalVolume: opts.voiceOverMuteOriginal ? 0 : 0.22,
+					script: opts.voiceOverScript || undefined,
+				}
+			: null,
 		look: {
 			...style.look,
 			vignette: Math.max(style.look.vignette || 0, (globalAdj.vignette / 100) * 0.85) || undefined,

@@ -1107,3 +1107,392 @@ details summary { cursor: pointer; color: var(--muted); margin-top: 8px; }
 .cc-filter:hover { border-color: var(--line-hi); }
 .cc-filter.on { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
 #ccCompare.on { background: var(--brand-fill) !important; color: #ffffff !important; }
+
+/* ==================== FASHION 20-30s + TIKTOK DNA + VOICE OVER + HOOK 3s ==================== */
+.fashion-strip {
+	margin: 14px 0 16px;
+	padding: 14px 16px;
+	border-radius: 14px;
+	background: linear-gradient(145deg, rgba(122, 139, 255, 0.12), rgba(255, 77, 141, 0.06) 55%, rgba(16, 19, 30, 0.85));
+	border: 1px solid rgba(145, 162, 255, 0.28);
+}
+.fs-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-bottom: 12px;
+}
+.fs-title {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+.fs-quick-links {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+.fs-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 10px 12px;
+}
+.fs-field {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+	font-size: 12.5px;
+}
+.fs-field span {
+	color: #cbd5e1;
+	font-weight: 600;
+}
+.fs-field.fs-full {
+	grid-column: 1 / -1;
+}
+.fs-toggles {
+	grid-column: 1 / -1;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	padding: 4px 0;
+}
+.setup-vo-badge {
+	margin-top: 10px;
+	padding: 8px 12px;
+	border-radius: 10px;
+	background: rgba(52, 211, 153, 0.12);
+	border: 1px solid rgba(52, 211, 153, 0.35);
+	color: #a7f3d0;
+	font-size: 13px;
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+/* TikTok DNA Studio */
+.dna-form, .vo-form {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+.dna-form-row {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 12px;
+}
+.dna-workspace {
+	display: grid;
+	grid-template-columns: 320px minmax(0, 1fr);
+	gap: 14px;
+	margin-top: 14px;
+}
+.dna-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px;
+	border-radius: 10px;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	background: rgba(255, 255, 255, 0.025);
+	margin-bottom: 8px;
+	transition: border-color 0.15s, background 0.15s;
+}
+.dna-item.on {
+	border-color: rgba(129, 146, 255, 0.65);
+	background: rgba(99, 118, 255, 0.12);
+}
+.dna-item-body {
+	flex: 1;
+	min-width: 0;
+	cursor: pointer;
+}
+.dna-item-body b {
+	display: block;
+	font-size: 13.5px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.dna-item-body small {
+	display: block;
+	color: #94a3b8;
+	font-size: 11.5px;
+	margin-top: 2px;
+}
+.dna-item-acts {
+	display: flex;
+	gap: 4px;
+}
+.dna-detail-head {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px;
+	flex-wrap: wrap;
+	margin-bottom: 10px;
+}
+.dna-summary {
+	font-size: 13.5px;
+	color: #e2e8f0;
+	margin-bottom: 14px;
+	padding: 10px 12px;
+	border-radius: 10px;
+	background: rgba(255, 255, 255, 0.04);
+}
+.dna-metrics {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 10px;
+	margin-bottom: 14px;
+}
+.dm-card {
+	padding: 10px 12px;
+	border-radius: 10px;
+	background: rgba(15, 23, 42, 0.65);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+.dm-card span {
+	font-size: 11.5px;
+	color: #94a3b8;
+}
+.dm-card b {
+	font-size: 18px;
+	color: #fff;
+}
+.dm-card small {
+	font-size: 11.5px;
+	color: #a5b4fc;
+}
+.dna-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 12px;
+}
+.dna-panel {
+	padding: 12px 14px;
+	border-radius: 12px;
+	background: rgba(255, 255, 255, 0.03);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	font-size: 13px;
+}
+.dna-panel h4 {
+	margin-bottom: 8px;
+	font-size: 13.5px;
+	color: #e0e7ff;
+}
+.dna-panel ul, .dna-panel ol {
+	padding-left: 18px;
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+	color: #cbd5e1;
+}
+.dna-panel ul.ok-list, .dna-panel ul.bad-list {
+	list-style: none;
+	padding-left: 0;
+}
+.dna-panel ul.bad-list {
+	margin-top: 8px;
+	color: #fca5a5;
+}
+.dna-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-top: 8px;
+}
+.dna-chips span {
+	font-size: 12px;
+	padding: 4px 8px;
+	border-radius: 8px;
+	background: rgba(255, 77, 141, 0.14);
+	border: 1px solid rgba(255, 77, 141, 0.3);
+	color: #fbcfe8;
+}
+
+/* AI Voice Over & 3s Hook Cards */
+.vo-analysis-card, .hook3s-card {
+	margin-top: 14px;
+	padding: 16px;
+	border-radius: 14px;
+	background: linear-gradient(150deg, rgba(44, 54, 138, 0.22), rgba(15, 18, 30, 0.92));
+	border: 1px solid rgba(145, 162, 255, 0.3);
+}
+.vo-analysis-head, .hook3s-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	flex-wrap: wrap;
+	margin-bottom: 12px;
+}
+.vo-analysis-grid, .hook3s-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 10px 14px;
+	font-size: 13px;
+	color: #e2e8f0;
+}
+.vo-analysis-grid .full, .hook3s-grid .full {
+	grid-column: 1 / -1;
+}
+.hook3s-score {
+	text-align: right;
+	padding: 6px 12px;
+	border-radius: 10px;
+	background: rgba(52, 211, 153, 0.14);
+	border: 1px solid rgba(52, 211, 153, 0.35);
+}
+.hook3s-score small {
+	display: block;
+	font-size: 11px;
+	color: #a7f3d0;
+}
+.hook3s-score b {
+	font-size: 20px;
+	color: #34d399;
+}
+.hook3s-score b span {
+	font-size: 12px;
+	color: #94a3b8;
+}
+.hook3s-alts {
+	margin-top: 12px;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	font-size: 12.5px;
+}
+.vo-options-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 14px;
+	margin-top: 14px;
+}
+.vo-opt-card {
+	padding: 15px;
+	border-radius: 14px;
+	background: rgba(15, 18, 29, 0.9);
+	border: 1px solid rgba(255, 255, 255, 0.11);
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+.vo-opt-top {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	flex-wrap: wrap;
+	font-size: 12px;
+}
+.vo-badge {
+	display: inline-block;
+	padding: 3px 9px;
+	border-radius: 999px;
+	background: rgba(122, 139, 255, 0.18);
+	border: 1px solid rgba(122, 139, 255, 0.4);
+	color: #c7d2fe;
+	font-weight: 700;
+	font-size: 11.5px;
+}
+.vo-reason {
+	font-size: 12.5px;
+	color: #cbd5e1;
+}
+.vo-hook-box {
+	padding: 10px;
+	border-radius: 10px;
+	background: rgba(255, 77, 141, 0.08);
+	border: 1px solid rgba(255, 77, 141, 0.25);
+	font-size: 12.5px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+.vo-hook-lbl, .vo-script-lbl {
+	font-size: 11.5px;
+	font-weight: 700;
+	color: #f9a8d4;
+	letter-spacing: 0.02em;
+}
+.vo-script-lbl {
+	color: #a5b4fc;
+	margin-bottom: 4px;
+}
+.vo-overlay-chip {
+	display: inline-block;
+	padding: 2px 7px;
+	border-radius: 6px;
+	background: #ff4d8d;
+	color: #fff;
+	font-weight: 700;
+	font-size: 11.5px;
+}
+.vo-script-edit {
+	width: 100%;
+	font-size: 12.5px;
+	line-height: 1.45;
+}
+.vo-beats-det summary {
+	cursor: pointer;
+	font-size: 12.5px;
+	color: #93c5fd;
+	font-weight: 600;
+}
+.vo-beats-list {
+	margin-top: 8px;
+	display: flex;
+	flex-direction: column;
+	gap: 7px;
+}
+.vo-beat-row {
+	display: grid;
+	grid-template-columns: 74px minmax(0, 1fr);
+	gap: 8px;
+	padding: 6px 8px;
+	border-radius: 8px;
+	background: rgba(255, 255, 255, 0.03);
+	font-size: 12px;
+}
+.vo-beat-time {
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+	color: #fbbf24;
+	font-weight: 700;
+}
+.vo-audio-bar {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 8px;
+	border-radius: 8px;
+	background: rgba(52, 211, 153, 0.1);
+	font-size: 12px;
+}
+.vo-audio-bar audio {
+	width: 100%;
+	height: 32px;
+}
+.vo-opt-actions {
+	margin-top: auto;
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+@media (max-width: 1120px) {
+	.vo-options-grid { grid-template-columns: 1fr; }
+	.dna-workspace { grid-template-columns: 1fr; }
+	.dna-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+	.dna-grid { grid-template-columns: 1fr; }
+	.fs-grid { grid-template-columns: 1fr; }
+}

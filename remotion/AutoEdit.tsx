@@ -40,10 +40,14 @@ const Segments: React.FC<{plan: EditPlan; muted?: boolean; style?: React.CSSProp
 						<OffthreadVideo
 							src={src}
 							trimBefore={seg.trimBefore}
-							muted={muted}
+							muted={muted || Boolean(plan.voiceOver?.src && plan.voiceOver.muteOriginal)}
 							style={style}
-							// 2-frame fades at every join so cuts don't click
-							volume={(f) => Math.max(0, Math.min(1, (f + 1) / 2, (seg.dur - f) / 2))}
+							// 2-frame fades at every join so cuts don't click; duck original audio when Voice Over is active
+							volume={(f) => {
+								const base = Math.max(0, Math.min(1, (f + 1) / 2, (seg.dur - f) / 2));
+								if (plan.voiceOver?.src) return base * (plan.voiceOver.muteOriginal ? 0 : plan.voiceOver.originalVolume ?? 0.25);
+								return base;
+							}}
 						/>
 					)
 				) : (
@@ -191,6 +195,7 @@ const SoundLayer: React.FC<{plan: EditPlan}> = ({plan}) => {
 					/>
 				</Sequence>
 			))}
+			{plan.voiceOver?.src ? <Audio src={plan.voiceOver.src} volume={plan.voiceOver.volume ?? 1} /> : null}
 			{music && duck ? <Audio src={music.src} loop volume={duck} /> : null}
 		</>
 	);

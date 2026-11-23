@@ -541,6 +541,21 @@ export const buildPlan = (args: {
 		}
 	}
 
+	const voSrc = opts.voiceOverAudioUrl
+		? /^https?:\/\//.test(opts.voiceOverAudioUrl)
+			? opts.voiceOverAudioUrl
+			: `${baseUrl}${opts.voiceOverAudioUrl.startsWith('/') ? '' : '/'}${opts.voiceOverAudioUrl}`
+		: '';
+	const voiceOver = voSrc
+		? {
+				src: voSrc,
+				volume: 1,
+				muteOriginal: Boolean(opts.voiceOverMuteOriginal),
+				originalVolume: opts.voiceOverMuteOriginal ? 0 : 0.22,
+				script: opts.voiceOverScript || undefined,
+			}
+		: null;
+
 	return {
 		version: 1,
 		...planBase,
@@ -550,6 +565,7 @@ export const buildPlan = (args: {
 		beats,
 		sfx: sfx.sort((a, b) => a.at - b.at),
 		music,
+		voiceOver,
 		look: style.look,
 		brand: {accent, ink: style.ink, font: style.caption.font},
 		progressBar: {enabled: opts.progressBar, color: accent},

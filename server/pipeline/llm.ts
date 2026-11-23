@@ -1,6 +1,6 @@
 // Optional AI editor (Gemini): the role the Claude agent plays in ghost-editor — judge retakes,
 // pick the hook title, keywords, and where cards / emoji land. Everything degrades to heuristics without a key.
-import type {Word} from '../../shared/types.js';
+import type {Hook3sBlueprint, TikTokChannelDNA, Word} from '../../shared/types.js';
 import type {Sentence} from './edit.js';
 import {GEMINI_MODEL} from '../config.js';
 import {findAgyBinary, getAgyConfig, runAgyPrompt} from '../agy-cli.js';
@@ -13,16 +13,43 @@ export type AiResult = {
 	beats?: {type: 'big' | 'emoji' | 'pill'; word: number; text?: string; sub?: string; emoji?: string}[];
 	fixes?: Record<string, string>;
 	summary?: string;
+	hook3s?: Hook3sBlueprint;
 };
 
-const PROMPT = (lang: string, maxDuration: number, style: string, brief: string) => `You are a senior short-form video editor (Reels/TikTok/Shorts).
+const PROMPT = (
+	lang: string,
+	maxDuration: number,
+	style: string,
+	brief: string,
+	fashionMode?: boolean,
+	dna?: TikTokChannelDNA | null,
+	hook3sDescription?: string,
+	voiceOverScript?: string,
+) => `You are a senior short-form video editor (TikTok/Reels/Shorts)${fashionMode ? ' specializing in viral 20-30 second FASHION videos (lookbook, styling, outfit reveal, fabric details, conversion hooks)' : ''}.
 ${brief ? `\nTHE CREATOR'S BRIEF — what this video must be (follow it: what to keep, tone, length, audience, title idea):\n"""${brief.slice(0, 2000)}"""\n` : ''}
-You get the word-level transcript of a RAW talking-head recording, split into numbered sentences S<n>. Each word has an index [i].
+${hook3sDescription ? `\n3-SECOND HOOK DIRECTION FROM CREATOR:\n"""${hook3sDescription.slice(0, 800)}"""\n` : ''}
+${voiceOverScript ? `\nSELECTED VOICE OVER SCRIPT (align cuts and highlights to match this narrative):\n"""${voiceOverScript.slice(0, 1200)}"""\n` : ''}
+${
+	dna
+		? `\nLEARNED TIKTOK CHANNEL DNA ("${dna.name}") — FOLLOW THIS EDITING STYLE:\n- Summary: ${dna.summary}\n- Target duration: ${dna.metrics.targetRangeSec[0]}-${dna.metrics.targetRangeSec[1]}s, avg shot ${dna.metrics.avgShotLengthSec}s\n- 3s Hook Formula: ${dna.hook3sFormula.pattern} | Visual: ${dna.hook3sFormula.visualPattern}\n- Pacing: ${dna.pacingCurve.intro0to3s} | ${dna.pacingCurve.body3to20s} | ${dna.pacingCurve.outro20to30s}\n- Viral rules: ${dna.viralRules.join('; ')}\n`
+		: ''
+}
+You get the word-level transcript of a RAW recording, split into numbered sentences S<n>. Each word has an index [i].
 The speaker may repeat a sentence several times (retakes), abandon starts, say "okay again"/"làm lại", or mutter. Later fluent takes are usually better.
 
 Return ONLY JSON with this shape:
 {
  "title": "a punchy hook title for the first 3 seconds, max 6 words, same language as the speech",
+ "hook3s": {
+   "title": "punchy 0-3s hook headline (max 6 words)",
+   "visualAction": "exact visual & cut direction for the first 3 seconds (0-1.5s and 1.5-3.0s)",
+   "openingLine": "best opening hook line for 0-3s",
+   "textOverlay": "on-screen text overlay for 0-3s",
+   "cameraMove": "camera zoom/cut move for 0-3s",
+   "sfxCue": "SFX cue for 0-3s",
+   "retentionScore": 90,
+   "whyItWorks": "short explanation of why this 3-second hook retains viewers"
+ },
  "drop_sentences": [sentence numbers that are retakes, false starts, mutters, off-topic chatter or duplicate content — keep the BEST (usually the last fluent) version of each idea],
  ${maxDuration > 0 ? `"keep_sentences": [the sentence numbers forming the strongest ${maxDuration}-second cut: hook first, the core points, the close],` : ''}
  "keywords": [word indices of the single most important word of each caption phrase; about 1 every 3-4 seconds],
@@ -33,20 +60,51 @@ Return ONLY JSON with this shape:
  ],
  "fixes": {"misheard word": "correct spelling"}   // brand names, people, technical terms whisper got wrong
 }
-Rules: never invent content not said. Sentences that do not serve the brief may be dropped. Big cards only for things actually said. Style of the edit: ${style}. Language of the speech: ${lang}.`;
+Rules: never invent content not said in transcript for drop/keep/keywords. Sentences that do not serve the brief may be dropped. Big cards only for things actually said. Style of the edit: ${style}. Language of the speech: ${lang}.`;
 
-export const runGemini = async (key: string, words: Word[], sentences: Sentence[], opts: {language: string; maxDuration: number; style: string; brief?: string}): Promise<AiResult> => {
+const parseHook3s = (raw: any): Hook3sBlueprint | undefined => {
+	if (!raw || typeof raw !== 'object') return undefined;
+	return {
+		title: String(raw.title || '').slice(0, 60),
+		visualAction: String(raw.visualAction || ''),
+		openingLine: String(raw.openingLine || ''),
+		textOverlay: String(raw.textOverlay || '').slice(0, 60),
+		cameraMove: String(raw.cameraMove || 'Snap zoom 1.15x + Flash cut'),
+		sfxCue: String(raw.sfxCue || 'Impact + Whoosh'),
+		retentionScore: Math.min(99, Math.max(50, Number(raw.retentionScore) || 88)),
+		whyItWorks: String(raw.whyItWorks || ''),
+	};
+};
+
+export const runGemini = async (
+	key: string,
+	words: Word[],
+	sentences: Sentence[],
+	opts: {
+		language: string;
+		maxDuration: number;
+		style: string;
+		brief?: string;
+		fashionMode?: boolean;
+		dna?: TikTokChannelDNA | null;
+		hook3sDescription?: string;
+		voiceOverScript?: string;
+	},
+): Promise<AiResult> => {
 	const lines = sentences.map(
 		(s) => `S${s.id} (${s.start.toFixed(1)}-${s.end.toFixed(1)}s): ` + words.slice(s.w0, s.w1 + 1).map((w) => `[${w.i}]${w.text}`).join(' '),
 	);
-	const fullPrompt = PROMPT(opts.language, opts.maxDuration, opts.style, opts.brief || '') + '\n\nTRANSCRIPT:\n' + lines.join('\n');
+	const fullPrompt =
+		PROMPT(opts.language, opts.maxDuration, opts.style, opts.brief || '', opts.fashionMode, opts.dna, opts.hook3sDescription, opts.voiceOverScript) +
+		'\n\nTRANSCRIPT:\n' +
+		lines.join('\n');
 
 	// If local `agy` CLI AI Engine is enabled & installed (or no Gemini API key provided), route via `agy -p --model <selected>`
 	const agyCfg = getAgyConfig();
 	const agyBin = agyCfg.enabled ? await findAgyBinary(agyCfg.customPath) : null;
 	if (agyBin && (!key || agyCfg.enabled)) {
 		try {
-			const agyRes = await runAgyPrompt(fullPrompt, {timeoutMs: 90_000});
+			const agyRes = await runAgyPrompt(fullPrompt, {timeoutMs: 120_000});
 			const jsonMatch = agyRes.output.match(/\{[\s\S]*\}/);
 			if (jsonMatch) {
 				const parsed = JSON.parse(jsonMatch[0]);
@@ -54,6 +112,7 @@ export const runGemini = async (key: string, words: Word[], sentences: Sentence[
 				const maxWord = words.length - 1;
 				return {
 					title: typeof parsed.title === 'string' ? parsed.title.slice(0, 60) : undefined,
+					hook3s: parseHook3s(parsed.hook3s),
 					dropSentences: ints(parsed.drop_sentences),
 					keepSentences: ints(parsed.keep_sentences),
 					keywords: ints(parsed.keywords)?.filter((i) => i >= 0 && i <= maxWord),
