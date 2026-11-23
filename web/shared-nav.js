@@ -83,7 +83,8 @@
 		} catch {}
 	}
 
-	// Discover all active backend endpoints (Vercel Cloud API '' and/or Local SQLite 'http://localhost:8790')
+	// Discover all active backend endpoints (Same-origin, Vercel Cloud Hub, and Local SQLite 'http://localhost:8790')
+	const CLOUD_HUB_URL = 'https://vlivests.vercel.app';
 	let backendsCache = null;
 	let lastDetectAt = 0;
 
@@ -93,6 +94,9 @@
 		const candidates = [''];
 		const custom = localStorage.getItem('sts_hub_backend');
 		if (custom) candidates.push(custom.replace(/\/+$/, ''));
+		if (location.origin !== CLOUD_HUB_URL) {
+			candidates.push(CLOUD_HUB_URL);
+		}
 		if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
 			candidates.push('http://localhost:8790');
 		}
@@ -100,7 +104,7 @@
 		for (const base of [...new Set(candidates)]) {
 			try {
 				const ctrl = new AbortController();
-				const to = setTimeout(() => ctrl.abort(), 1400);
+				const to = setTimeout(() => ctrl.abort(), 2200);
 				const r = await fetch(`${base}/api/hub/stats`, {signal: ctrl.signal});
 				clearTimeout(to);
 				const ct = r.headers.get('content-type') || '';

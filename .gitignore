@@ -9,3 +9,5 @@ public/sfx/*.mp3
 .DS_Store
 .env
 .sync-cache/
+.vercel
+.env*

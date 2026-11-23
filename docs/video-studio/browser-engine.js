@@ -681,16 +681,20 @@ export async function handleBrowserApi(url, opts = {}) {
 		};
 	}
 
+	const CLOUD_ORIGIN = 'https://vlivests.vercel.app';
 	const tryVercelOnline = async (path, reqOpts = {}) => {
-		try {
-			const r = await fetch(path, {
-				method: reqOpts.method || 'GET',
-				headers: {'Content-Type': 'application/json'},
-				body: reqOpts.body ? JSON.stringify(reqOpts.body) : undefined,
-			});
-			const ct = r.headers.get('content-type') || '';
-			if (r.ok && ct.includes('application/json')) return await r.json();
-		} catch {}
+		const origins = location.origin === CLOUD_ORIGIN ? [''] : ['', CLOUD_ORIGIN];
+		for (const origin of origins) {
+			try {
+				const r = await fetch(`${origin}${path}`, {
+					method: reqOpts.method || 'GET',
+					headers: {'Content-Type': 'application/json'},
+					body: reqOpts.body ? JSON.stringify(reqOpts.body) : undefined,
+				});
+				const ct = r.headers.get('content-type') || '';
+				if (r.ok && ct.includes('application/json')) return await r.json();
+			} catch {}
+		}
 		return null;
 	};
 

@@ -1,0 +1,17 @@
+.runtime
+.sync-cache
+_research
+data
+node_modules
+public
+remotion
+scripts
+server
+shared
+tmp
+web
+*.command
+*.mp4
+*.wav
+*.bin
+.env.local

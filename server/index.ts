@@ -22,6 +22,7 @@ import {addClips, cancelJob, clearAllJobs, createJob, deleteJob, getJob, getTime
 import {downloadWhisperModel, type WhisperModel} from '@remotion/install-whisper-cpp';
 import {buildWebBundle} from './build-web.js';
 import {getAgyStatus, runAgyPrompt, saveAgyConfig} from './agy-cli.js';
+import {getCloudSyncState, scheduleCloudSync, startCloudSyncLoop, syncWithVercelCloud} from './cloud-sync.js';
 import {analyzeHook3s, generateVoiceOverOptions, synthesizeVoiceOverAudio} from './fashion-director.js';
 import {deleteDnaProfile, getDnaProfile, learnTikTokChannelsDNA, listDnaProfiles, mergeDnaProfiles} from './tiktok-dna.js';
 import {availableModels, whisperReady} from './pipeline/transcribe.js';
@@ -94,12 +95,18 @@ app.post('/api/logout', (_req, res) => {
 
 // ---- Multi-App SQLite Database Endpoints (/api/hub/db/:app/:collection)
 app.get('/api/hub/stats', (_req, res) => {
-	res.json({ok: true, db: dbStats(), serverTime: Date.now()});
+	res.json({ok: true, db: dbStats(), cloudSync: getCloudSyncState(), serverTime: Date.now()});
+});
+
+app.post('/api/hub/cloud-sync-now', async (_req, res) => {
+	const r = await syncWithVercelCloud();
+	res.json({...r, db: dbStats(), cloudSync: getCloudSyncState()});
 });
 
 app.post('/api/hub/sync', (req, res) => {
 	const incoming = Array.isArray(req.body?.records) ? req.body.records : [];
 	const synced = dbSyncAllAppRecords(incoming);
+	scheduleCloudSync(800);
 	res.json({ok: true, ...synced, db: dbStats()});
 });
 
@@ -354,6 +361,7 @@ app.post(
 				maxVideosPerChannel: Number(req.body?.maxVideosPerChannel) || 12,
 				localReferenceFiles,
 			});
+			scheduleCloudSync(600);
 			return {ok: true, item: dna, items: listDnaProfiles()};
 		} finally {
 			for (const f of files) fs.rmSync(f.path, {force: true});
@@ -366,6 +374,7 @@ app.post(
 	wrap(async (req) => {
 		const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(String) : [];
 		const dna = await mergeDnaProfiles(ids, req.body?.name, req.body?.model);
+		scheduleCloudSync(600);
 		return {ok: true, item: dna, items: listDnaProfiles()};
 	}),
 );
@@ -374,6 +383,7 @@ app.delete(
 	'/api/dna/:id',
 	wrap((req) => {
 		deleteDnaProfile(req.params.id);
+		scheduleCloudSync(600);
 		return {ok: true, items: listDnaProfiles()};
 	}),
 );
@@ -382,13 +392,15 @@ app.delete(
 app.post(
 	'/api/fashion/voiceover',
 	wrap(async (req) => {
-		return await generateVoiceOverOptions({
+		const out = await generateVoiceOverOptions({
 			userInput: String(req.body?.userInput || ''),
 			targetSec: Number(req.body?.targetSec) || 25,
 			dnaProfileId: typeof req.body?.dnaProfileId === 'string' ? req.body.dnaProfileId : undefined,
 			brandStyle: typeof req.body?.brandStyle === 'string' ? req.body.brandStyle : undefined,
 			model: typeof req.body?.model === 'string' ? req.body.model : undefined,
 		});
+		scheduleCloudSync(600);
+		return out;
 	}),
 );
 
@@ -431,6 +443,7 @@ app.get('/script-studio/*', (_req, res) => {
 
 app.listen(PORT, '127.0.0.1', () => {
 	console.log(`\n  Auto Video Studio: http://localhost:${PORT}\n`);
+	startCloudSyncLoop();
 	if (!whisperReady()) console.log('  ! Chưa có Whisper. Chạy: npm run setup:whisper\n');
 	resetSfxCache();
 	buildWebBundle()
