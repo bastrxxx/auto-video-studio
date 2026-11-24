@@ -427,31 +427,22 @@ export async function synthesizeVoiceOverAudio(args: {
 		} catch {}
 	}
 
-	// 2. Fallback: macOS built-in Vietnamese TTS (`say -v Linh`) -> FFmpeg normalized WAV (-16 LUFS)
-	const aiffPath = path.join(voDir, `${id}.aiff`);
+	// 2. Fallback: macOS built-in Vietnamese TTS (`say -v Linh`) -> standard PCM WAV directly (Remotion ffmpeg has no aiff demuxer)
+	const rawWav = path.join(voDir, `${id}.raw.wav`);
 	const rate = Math.min(260, Math.max(140, Number(args.rateWpm) || 195));
+	const sayArgs = ['--file-format=WAVE', '--data-format=LEI16@44100', '-r', String(rate), '-o', rawWav, cleanText];
 	try {
-		await execFileAsync('say', ['-v', 'Linh', '-r', String(rate), '-o', aiffPath, cleanText], {timeout: 30_000});
+		await execFileAsync('say', ['-v', 'Linh', ...sayArgs], {timeout: 30_000});
 	} catch {
 		// Fallback to default system voice if Linh is unavailable
-		await execFileAsync('say', ['-r', String(rate), '-o', aiffPath, cleanText], {timeout: 30_000});
+		await execFileAsync('say', sayArgs, {timeout: 30_000});
 	}
 
 	try {
-		await runFf('ffmpeg', [
-			'-y',
-			'-i',
-			aiffPath,
-			'-af',
-			'loudnorm=I=-16:TP=-1.5:LRA=11',
-			'-ar',
-			'44100',
-			'-ac',
-			'2',
-			outWav,
-		]);
-	} finally {
-		fs.rmSync(aiffPath, {force: true});
+		await runFf('ffmpeg', ['-y', '-i', rawWav, '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11', '-ar', '44100', '-ac', '2', outWav]);
+		fs.rmSync(rawWav, {force: true});
+	} catch {
+		fs.renameSync(rawWav, outWav);
 	}
 
 	const dur = await getAudioDuration(outWav);
