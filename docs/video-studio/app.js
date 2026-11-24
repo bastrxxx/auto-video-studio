@@ -301,14 +301,24 @@ async function pollModels() {
 }
 
 let saveSettingsTimer = null;
-function setOpt(k, v, silent) {
-	state.opts[k] = v;
+function saveOpts() {
 	const clean = {...state.opts, geminiKey: '', manualOrder: []};
-	localStorage.setItem('avs.opts', JSON.stringify(clean));
+	try {
+		localStorage.setItem('avs.opts', JSON.stringify(clean));
+	} catch {
+		// If audio data URL is large, store options without base64 audio in localStorage
+		try {
+			localStorage.setItem('avs.opts', JSON.stringify({...clean, voiceOverAudioUrl: ''}));
+		} catch {}
+	}
 	clearTimeout(saveSettingsTimer);
 	saveSettingsTimer = setTimeout(() => {
 		api('/api/settings', {method: 'PUT', body: {options: clean}}).catch(() => undefined);
 	}, 450);
+}
+function setOpt(k, v, silent) {
+	state.opts[k] = v;
+	saveOpts();
 	if (!silent) syncOptions();
 	if (k === 'order') renderClips();
 	refreshEditor();
