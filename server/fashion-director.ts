@@ -398,10 +398,11 @@ CHỈ TRẢ VỀ DUY NHẤT 1 JSON:
 	return {ok: true, modelUsed: chosenModel, hook3s: fallback};
 }
 
-/** Synthesize Voice Over script to a WAV file (tries local VoiceStudio Pro first, falls back to macOS `say`) */
+/** Synthesize Voice Over script to a WAV file (tries VoiceStudio Pro -> macOS `say` + FFmpeg voice shaping for Male/Female) */
 export async function synthesizeVoiceOverAudio(args: {
 	text: string;
 	voiceName?: string;
+	voiceId?: string;
 	rateWpm?: number;
 }): Promise<{ok: boolean; engine: string; audioUrl: string; filePath: string; durationSec: number}> {
 	const cleanText = (args.text || '').replace(/\[[^\]]+\]/g, '').replace(/\s+/g, ' ').trim();
@@ -411,42 +412,59 @@ export async function synthesizeVoiceOverAudio(args: {
 	fs.mkdirSync(voDir, {recursive: true});
 	const id = `vo_${Date.now().toString(36)}_${crypto.randomBytes(3).toString('hex')}`;
 	const outWav = path.join(voDir, `${id}.wav`);
+	const vid = (args.voiceId || args.voiceName || 'vi-female-natural').trim();
 
-	// 1. Try local VoiceStudio Pro CLI if voiceName is explicitly provided and CLI exists
+	// 1. Try local VoiceStudio Pro CLI if user selected a custom VoiceStudio cloned voice
 	const vsCli = path.resolve(PATHS.root, '..', 'voicestudio-studio', 'cli', 'voicestudio.mjs');
-	if (args.voiceName && args.voiceName !== 'macos-linh' && fs.existsSync(vsCli)) {
+	const isBuiltin = ['vi-female-natural', 'vi-female-fast', 'vi-male-warm', 'vi-male-deep', 'macos-linh', ''].includes(vid);
+	if (!isBuiltin && fs.existsSync(vsCli)) {
 		try {
-			await execFileAsync(process.execPath, [vsCli, 'tts', '--voice', args.voiceName, '--text', cleanText, '--auto-emotion', '--out', outWav], {
+			await execFileAsync(process.execPath, [vsCli, 'tts', '--voice', vid, '--text', cleanText, '--auto-emotion', '--out', outWav], {
 				timeout: 90_000,
 				env: {...process.env, VOICESTUDIO_APP_URL: process.env.VOICESTUDIO_APP_URL || 'http://localhost:3090'},
 			});
 			if (fs.existsSync(outWav) && fs.statSync(outWav).size > 2000) {
 				const dur = await getAudioDuration(outWav);
-				return {ok: true, engine: `VoiceStudio Pro (${args.voiceName})`, audioUrl: `/voiceovers/${id}.wav`, filePath: outWav, durationSec: dur};
+				return {ok: true, engine: `VoiceStudio Pro (${vid})`, audioUrl: `/voiceovers/${id}.wav`, filePath: outWav, durationSec: dur};
 			}
 		} catch {}
 	}
 
-	// 2. Fallback: macOS built-in Vietnamese TTS (`say -v Linh`) -> standard PCM WAV directly (Remotion ffmpeg has no aiff demuxer)
+	// 2. Built-in Vietnamese TTS (Nữ / Nam presets via macOS `say` + FFmpeg formant/pitch shaping)
 	const rawWav = path.join(voDir, `${id}.raw.wav`);
-	const rate = Math.min(260, Math.max(140, Number(args.rateWpm) || 195));
+	const isMale = vid === 'vi-male-warm' || vid === 'vi-male-deep';
+	const isFast = vid === 'vi-female-fast' || vid === 'vi-male-deep';
+	const rate = Math.min(260, Math.max(140, Number(args.rateWpm) || (isFast ? 212 : isMale ? 188 : 196)));
 	const sayArgs = ['--file-format=WAVE', '--data-format=LEI16@44100', '-r', String(rate), '-o', rawWav, cleanText];
 	try {
 		await execFileAsync('say', ['-v', 'Linh', ...sayArgs], {timeout: 30_000});
 	} catch {
-		// Fallback to default system voice if Linh is unavailable
 		await execFileAsync('say', sayArgs, {timeout: 30_000});
 	}
 
+	// Shape pitch cleanly for Male vs Female voices using FFmpeg asetrate + aresample + atempo
+	const pitchFactor = vid === 'vi-male-deep' ? 0.78 : vid === 'vi-male-warm' ? 0.84 : vid === 'vi-female-fast' ? 1.04 : 1.0;
+	const filterChain =
+		pitchFactor !== 1.0
+			? `asetrate=${Math.round(44100 * pitchFactor)},aresample=44100,atempo=${(1 / pitchFactor).toFixed(3)},loudnorm=I=-16:TP=-1.5:LRA=11`
+			: 'loudnorm=I=-16:TP=-1.5:LRA=11';
+
+	const labelMap: Record<string, string> = {
+		'vi-female-natural': '👩 Nữ Tự nhiên (VI)',
+		'vi-female-fast': '👩 Nữ Năng lượng (VI)',
+		'vi-male-warm': '👨 Nam Trầm ấm (VI)',
+		'vi-male-deep': '👨 Nam Chốt đơn (VI)',
+	};
+
 	try {
-		await runFf('ffmpeg', ['-y', '-i', rawWav, '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11', '-ar', '44100', '-ac', '2', outWav]);
+		await runFf('ffmpeg', ['-y', '-i', rawWav, '-af', filterChain, '-ar', '44100', '-ac', '2', outWav]);
 		fs.rmSync(rawWav, {force: true});
 	} catch {
 		fs.renameSync(rawWav, outWav);
 	}
 
 	const dur = await getAudioDuration(outWav);
-	return {ok: true, engine: 'macOS TTS (Linh VI)', audioUrl: `/voiceovers/${id}.wav`, filePath: outWav, durationSec: dur};
+	return {ok: true, engine: labelMap[vid] || '👩 Nữ Tự nhiên (VI)', audioUrl: `/voiceovers/${id}.wav`, filePath: outWav, durationSec: dur};
 }
 
 async function getAudioDuration(filePath: string): Promise<number> {

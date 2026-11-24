@@ -370,9 +370,17 @@ export default async function handler(req, res) {
 			rest = rest.slice(cut + 1).trim();
 		}
 
+		const voiceId = String(body.voiceId || 'vi-female-natural');
+		const voiceMeta = {
+			'vi-female-natural': {label: '👩 Nữ Tự nhiên (Cloud VI)', ttsspeed: '1'},
+			'vi-female-fast': {label: '👩 Nữ Năng lượng (Cloud VI)', ttsspeed: '1'},
+			'vi-male-warm': {label: '👨 Nam Trầm ấm (Cloud VI)', ttsspeed: '0.92'},
+			'vi-male-deep': {label: '👨 Nam Chốt đơn (Cloud VI)', ttsspeed: '0.95'},
+		}[voiceId] || {label: '👩 Nữ Tự nhiên (Cloud VI)', ttsspeed: '1'};
+
 		const buffers = [];
 		for (const chunk of chunks) {
-			const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=vi&client=tw-ob&q=${encodeURIComponent(chunk)}`;
+			const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=vi&client=tw-ob&ttsspeed=${voiceMeta.ttsspeed}&q=${encodeURIComponent(chunk)}`;
 			const r = await fetch(ttsUrl, {
 				headers: {
 					'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36',
@@ -394,7 +402,8 @@ export default async function handler(req, res) {
 		const estDur = Number(Math.max(2, wordCount / 2.9).toFixed(1));
 		return res.status(200).json({
 			ok: true,
-			engine: 'Vercel Cloud TTS (Tiếng Việt)',
+			engine: voiceMeta.label,
+			voiceId,
 			audioUrl: `data:audio/mpeg;base64,${merged.toString('base64')}`,
 			durationSec: estDur,
 		});

@@ -201,6 +201,8 @@ async function enterStudio(user) {
 		api,
 		getApiBase: () => API_BASE,
 		getOpts: () => state.opts,
+		hasClips: () => Boolean(state.jobId && state.clips.length > 0),
+		startAutoEdit: () => start(),
 		applyPatch: (patch) => {
 			Object.assign(state.opts, patch);
 			syncOptions();

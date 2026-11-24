@@ -34,6 +34,7 @@ function saveFashionDraft() {
 		voTargetSec: $('#voTargetSec')?.value || '25',
 		voDnaSelect: $('#voDnaSelect')?.value || '',
 		voBrandStyle: $('#voBrandStyle')?.value || '',
+		voVoiceSelect: $('#voVoiceSelect')?.value || 'vi-female-natural',
 		voResult: localState.voResult || null,
 		voAudioMap: localState.voAudioMap || {},
 		hook3sResult: localState.hook3sResult || null,
@@ -65,6 +66,7 @@ async function restoreFashionDraft() {
 	if (draft.voTargetSec && $('#voTargetSec')) $('#voTargetSec').value = draft.voTargetSec;
 	if (draft.voDnaSelect && $('#voDnaSelect')) $('#voDnaSelect').value = draft.voDnaSelect;
 	if (draft.voBrandStyle && $('#voBrandStyle')) $('#voBrandStyle').value = draft.voBrandStyle;
+	if (draft.voVoiceSelect && $('#voVoiceSelect')) $('#voVoiceSelect').value = draft.voVoiceSelect;
 	if (draft.voAudioMap && typeof draft.voAudioMap === 'object') localState.voAudioMap = draft.voAudioMap;
 	if (draft.voResult) {
 		localState.voResult = draft.voResult;
@@ -86,7 +88,7 @@ export async function initFashionStudio(bridge) {
 	bindFashionSetup();
 	bindDnaView();
 	bindVoiceOverView();
-	for (const id of ['#dnaUrlsInput', '#dnaNameInput', '#dnaNicheInput', '#dnaNotesInput', '#voUserInput', '#voTargetSec', '#voDnaSelect', '#voBrandStyle']) {
+	for (const id of ['#dnaUrlsInput', '#dnaNameInput', '#dnaNicheInput', '#dnaNotesInput', '#voUserInput', '#voTargetSec', '#voDnaSelect', '#voBrandStyle', '#voVoiceSelect']) {
 		$(id)?.addEventListener('input', saveFashionDraft);
 		$(id)?.addEventListener('change', saveFashionDraft);
 	}
@@ -659,10 +661,30 @@ function renderVoiceOverResults() {
 	`;
 
 	$$('[data-pick-vo]', wrap).forEach((btn) =>
-		btn.addEventListener('click', () => {
+		btn.addEventListener('click', async () => {
 			const idx = Number(btn.dataset.pickVo);
 			const o = r.options[idx];
 			const editedScript = $(`[data-script-idx="${idx}"]`, wrap)?.value.trim() || o.fullScript;
+			const voiceId = $('#voVoiceSelect')?.value || 'vi-female-natural';
+			btn.disabled = true;
+			btn.textContent = '⏳ Đang tạo giọng đọc & dựng Timeline...';
+			let audioUrl = localState.voAudioMap?.[idx]?.audioUrl || ctx.getOpts()?.voiceOverAudioUrl || '';
+			if (!localState.voAudioMap?.[idx]?.audioUrl) {
+				try {
+					const tts = await ctx.api('/api/fashion/voiceover/tts', {
+						method: 'POST',
+						body: {text: editedScript, voiceId, rateWpm: 195},
+					});
+					audioUrl = tts.audioUrl;
+					localState.voAudioMap[idx] = {engine: tts.engine, audioUrl: tts.audioUrl, durationSec: tts.durationSec};
+					saveFashionDraft();
+					const prev = $(`#voAudioPreview-${idx}`, wrap);
+					if (prev) {
+						prev.classList.remove('hidden');
+						prev.innerHTML = `<div class="vo-audio-bar"><span>🔊 ${esc(tts.engine)} (${tts.durationSec}s)</span><audio controls src="${esc(resolveMedia(tts.audioUrl))}"></audio></div>`;
+					}
+				} catch {}
+			}
 			ctx.applyPatch({
 				fashionMode: true,
 				title: o.hook3s?.overlayText || '',
@@ -673,11 +695,17 @@ function renderVoiceOverResults() {
 				maxDuration: Math.min(30, Math.max(20, Number(o.estimatedSec) || 26)),
 				hook3sDescription: `Câu mở: ${o.hook3s?.line || ''} | Hình ảnh 0-3s: ${o.hook3s?.visualHint || ''}`,
 				voiceOverScript: editedScript,
+				...(audioUrl ? {voiceOverAudioUrl: audioUrl} : {}),
 				brief: `${($('#voUserInput')?.value || '').trim()}\n\n[VO ${o.angle}]: ${editedScript}`.trim(),
 			});
 			syncFashionSetupUI();
-			btn.textContent = '✅ Đã áp dụng vào Dự án!';
-			setTimeout(() => ctx.switchView('setup'), 450);
+			btn.disabled = false;
+			btn.textContent = '✅ Đã chọn & Đang dựng Timeline!';
+			if (ctx.hasClips?.() && ctx.startAutoEdit) {
+				ctx.startAutoEdit();
+			} else {
+				ctx.switchView('setup');
+			}
 		}),
 	);
 
@@ -685,12 +713,13 @@ function renderVoiceOverResults() {
 		btn.addEventListener('click', async () => {
 			const idx = Number(btn.dataset.ttsVo);
 			const editedScript = $(`[data-script-idx="${idx}"]`, wrap)?.value.trim() || r.options[idx].fullScript;
+			const voiceId = $('#voVoiceSelect')?.value || 'vi-female-natural';
 			btn.disabled = true;
 			btn.textContent = '⏳ Đang tổng hợp giọng đọc...';
 			try {
 				const tts = await ctx.api('/api/fashion/voiceover/tts', {
 					method: 'POST',
-					body: {text: editedScript, rateWpm: 195},
+					body: {text: editedScript, voiceId, rateWpm: 195},
 				});
 				localState.voAudioMap[idx] = {engine: tts.engine, audioUrl: tts.audioUrl, durationSec: tts.durationSec};
 				saveFashionDraft();

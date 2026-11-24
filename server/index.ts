@@ -411,6 +411,7 @@ app.post(
 	wrap(async (req) => {
 		return await synthesizeVoiceOverAudio({
 			text: String(req.body?.text || ''),
+			voiceId: typeof req.body?.voiceId === 'string' ? req.body.voiceId : undefined,
 			voiceName: typeof req.body?.voiceName === 'string' ? req.body.voiceName : undefined,
 			rateWpm: Number(req.body?.rateWpm) || 195,
 		});
