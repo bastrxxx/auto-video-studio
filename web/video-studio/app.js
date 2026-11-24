@@ -208,14 +208,22 @@ async function enterStudio(user) {
 		},
 		switchView,
 	});
-	await refreshHistory();
-	const last = location.hash.slice(1);
-	if (last) loadJob(last).catch(() => undefined);
+	const jobs = await refreshHistory();
+	const savedView = localStorage.getItem('avs.activeView') || '';
+	const last = location.hash.slice(1) || localStorage.getItem('avs.activeJobId') || (jobs[0]?.id || '');
+	if (last) {
+		await loadJob(last, savedView).catch(() => {
+			localStorage.removeItem('avs.activeJobId');
+		});
+	} else if (savedView && ['setup', 'dna', 'voiceover'].includes(savedView)) {
+		switchView(savedView);
+	}
 }
 
 // ---------------------------------------------------------------- View Switcher
-function switchView(view) {
+function switchView(view, persist = true) {
 	state.view = view;
+	if (persist) localStorage.setItem('avs.activeView', view);
 	$$('#viewTabs .view-tab').forEach((b) => b.classList.toggle('on', b.dataset.view === view));
 	$('#viewSetup').classList.toggle('hidden', view !== 'setup');
 	$('#viewDna')?.classList.toggle('hidden', view !== 'dna');
@@ -393,7 +401,7 @@ function bindUpload() {
 	});
 }
 
-function resetWorkspace() {
+function resetWorkspace(clearSaved = true) {
 	stopPoll();
 	Object.assign(state, {
 		jobId: null,
@@ -407,13 +415,14 @@ function resetWorkspace() {
 	});
 	state.opts.manualOrder = [];
 	location.hash = '';
+	if (clearSaved) localStorage.removeItem('avs.activeJobId');
 	closeEditor();
 	$('#progressCard').classList.add('hidden');
 	$('#tabEditor').disabled = true;
 	$('#tabResult').disabled = true;
 	$('#tabEditorSub').textContent = 'Chỉnh từng câu theo giây & kéo thả';
 	$('#tabResultSub').textContent = 'Xem bản xuất cuối & thống kê';
-	switchView('setup');
+	switchView('setup', clearSaved);
 	$('#localPreview').classList.add('hidden');
 	$('#localPreview').removeAttribute('src');
 	$('#startBtn').disabled = true;
@@ -472,6 +481,7 @@ function uploadOne(c, file) {
 		return handleBrowserUpload([file], [{lastModified: file.lastModified}], state.jobId).then((j) => {
 			state.jobId = j.id;
 			location.hash = j.id;
+			localStorage.setItem('avs.activeJobId', j.id);
 			const info = j.job.clips.find((x) => x.id === j.added[0]);
 			Object.assign(c, info, {url: c.url || resolveUrl(info?.url), up: 1, local: true});
 			state.job = j.job;
@@ -512,6 +522,7 @@ function uploadOne(c, file) {
 			}
 			state.jobId = j.id;
 			location.hash = j.id;
+			localStorage.setItem('avs.activeJobId', j.id);
 			const info = j.job.clips.find((x) => x.id === j.added[0]);
 			Object.assign(c, info, {url: c.url || resolveUrl(info?.url), up: 1, local: true});
 			state.job = j.job;
@@ -874,14 +885,16 @@ async function refreshHistory() {
 			loadJob(li.dataset.id);
 		}),
 	);
+	return jobs;
 }
 
-async function loadJob(id) {
+async function loadJob(id, preferredView = '') {
 	const {job} = await api(`/api/jobs/${id}`);
-	resetWorkspace();
+	resetWorkspace(false);
 	state.jobId = id;
 	state.job = job;
 	location.hash = id;
+	localStorage.setItem('avs.activeJobId', id);
 	$$('#history li').forEach((li) => li.classList.toggle('active', li.dataset.id === id));
 	const {geminiKey, ...opts} = job.options;
 	state.opts = {...state.opts, ...opts};
@@ -900,15 +913,23 @@ async function loadJob(id) {
 	if (['running', 'queued'].includes(job.state)) startPoll();
 	if (job.state === 'done') {
 		await showResult(job);
+		if (preferredView && ['setup', 'dna', 'voiceover', 'editor', 'result'].includes(preferredView)) {
+			switchView(preferredView);
+		}
 	} else {
 		// If timeline already exists on disk (e.g. step 1-6 succeeded), enable the Editor tab immediately
 		openEditor(job.id, {getOptions: editorOptions, onExport: exportTimeline, setColor: setColorOpt})
 			.then(() => {
 				$('#tabEditor').disabled = false;
+				if (preferredView === 'editor') switchView('editor');
 			})
 			.catch(() => undefined);
 		if (job.result) {
 			$('#tabResult').disabled = false;
+			if (preferredView === 'result') switchView('result');
+		}
+		if (preferredView && ['setup', 'dna', 'voiceover'].includes(preferredView)) {
+			switchView(preferredView);
 		}
 	}
 }

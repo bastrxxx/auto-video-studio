@@ -11,21 +11,89 @@ let ctx = {
 	switchView: () => {},
 };
 
+const DRAFT_KEY = 'avs.fashionDraft.v1';
+
 const localState = {
 	agy: null,
 	dnaList: [],
 	selectedDnaId: '',
 	mergeIds: new Set(),
 	voResult: null,
+	voAudioMap: {},
 	hook3sResult: null,
 };
+
+function saveFashionDraft() {
+	const draft = {
+		selectedDnaId: localState.selectedDnaId || '',
+		dnaUrls: $('#dnaUrlsInput')?.value || '',
+		dnaName: $('#dnaNameInput')?.value || '',
+		dnaNiche: $('#dnaNicheInput')?.value || '',
+		dnaNotes: $('#dnaNotesInput')?.value || '',
+		voUserInput: $('#voUserInput')?.value || '',
+		voTargetSec: $('#voTargetSec')?.value || '25',
+		voDnaSelect: $('#voDnaSelect')?.value || '',
+		voBrandStyle: $('#voBrandStyle')?.value || '',
+		voResult: localState.voResult || null,
+		voAudioMap: localState.voAudioMap || {},
+		hook3sResult: localState.hook3sResult || null,
+		updatedAt: Date.now(),
+	};
+	try {
+		localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+	} catch {}
+	if (window.STS_DB?.put) {
+		window.STS_DB.put('video-studio', 'workspace_draft', 'current', draft).catch(() => {});
+	}
+}
+
+async function restoreFashionDraft() {
+	let draft = null;
+	try {
+		draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
+	} catch {}
+	if (!draft && window.STS_DB?.get) {
+		draft = await window.STS_DB.get('video-studio', 'workspace_draft', 'current').catch(() => null);
+	}
+	if (!draft || typeof draft !== 'object') return;
+	if (draft.selectedDnaId) localState.selectedDnaId = draft.selectedDnaId;
+	if (draft.dnaUrls && $('#dnaUrlsInput')) $('#dnaUrlsInput').value = draft.dnaUrls;
+	if (draft.dnaName && $('#dnaNameInput')) $('#dnaNameInput').value = draft.dnaName;
+	if (draft.dnaNiche && $('#dnaNicheInput')) $('#dnaNicheInput').value = draft.dnaNiche;
+	if (draft.dnaNotes && $('#dnaNotesInput')) $('#dnaNotesInput').value = draft.dnaNotes;
+	if (draft.voUserInput && $('#voUserInput')) $('#voUserInput').value = draft.voUserInput;
+	if (draft.voTargetSec && $('#voTargetSec')) $('#voTargetSec').value = draft.voTargetSec;
+	if (draft.voDnaSelect && $('#voDnaSelect')) $('#voDnaSelect').value = draft.voDnaSelect;
+	if (draft.voBrandStyle && $('#voBrandStyle')) $('#voBrandStyle').value = draft.voBrandStyle;
+	if (draft.voAudioMap && typeof draft.voAudioMap === 'object') localState.voAudioMap = draft.voAudioMap;
+	if (draft.voResult) {
+		localState.voResult = draft.voResult;
+		renderVoiceOverResults();
+	}
+	if (draft.hook3sResult) {
+		localState.hook3sResult = draft.hook3sResult;
+		const box = $('#hook3sStandaloneBox');
+		if (box) {
+			box.classList.remove('hidden');
+			box.innerHTML = renderHook3sCardHtml(draft.hook3sResult, true);
+			bindHook3sApplyButtons(box, draft.hook3sResult);
+		}
+	}
+}
 
 export async function initFashionStudio(bridge) {
 	ctx = bridge;
 	bindFashionSetup();
 	bindDnaView();
 	bindVoiceOverView();
+	for (const id of ['#dnaUrlsInput', '#dnaNameInput', '#dnaNicheInput', '#dnaNotesInput', '#voUserInput', '#voTargetSec', '#voDnaSelect', '#voBrandStyle']) {
+		$(id)?.addEventListener('input', saveFashionDraft);
+		$(id)?.addEventListener('change', saveFashionDraft);
+	}
 	await Promise.all([refreshAgyStatus(), refreshDnaList()]);
+	await restoreFashionDraft();
+	renderDnaLibrary();
+	renderDnaDetail();
 	syncFashionSetupUI();
 }
 
@@ -464,6 +532,8 @@ function bindVoiceOverView() {
 				},
 			});
 			localState.voResult = res;
+			localState.voAudioMap = {};
+			saveFashionDraft();
 			renderVoiceOverResults();
 		} catch (err) {
 			alert('Lỗi tạo phương án Voice Over: ' + err.message);
@@ -489,6 +559,7 @@ function bindVoiceOverView() {
 				},
 			});
 			localState.hook3sResult = res.hook3s;
+			saveFashionDraft();
 			const box = $('#hook3sStandaloneBox');
 			if (box) {
 				box.classList.remove('hidden');
@@ -571,7 +642,11 @@ function renderVoiceOverResults() {
 							: ''
 					}
 
-					<div class="vo-audio-preview hidden" id="voAudioPreview-${idx}"></div>
+					<div class="vo-audio-preview ${localState.voAudioMap?.[idx] ? '' : 'hidden'}" id="voAudioPreview-${idx}">${
+						localState.voAudioMap?.[idx]
+							? `<div class="vo-audio-bar"><span>🔊 ${esc(localState.voAudioMap[idx].engine)} (${localState.voAudioMap[idx].durationSec}s)</span><audio controls src="${esc(resolveMedia(localState.voAudioMap[idx].audioUrl))}"></audio></div>`
+							: ''
+					}</div>
 
 					<div class="vo-opt-actions">
 						<button type="button" class="primary sm" data-pick-vo="${idx}">✅ Chọn phương án này</button>
@@ -617,6 +692,8 @@ function renderVoiceOverResults() {
 					method: 'POST',
 					body: {text: editedScript, rateWpm: 195},
 				});
+				localState.voAudioMap[idx] = {engine: tts.engine, audioUrl: tts.audioUrl, durationSec: tts.durationSec};
+				saveFashionDraft();
 				const prev = $(`#voAudioPreview-${idx}`, wrap);
 				if (prev) {
 					prev.classList.remove('hidden');
