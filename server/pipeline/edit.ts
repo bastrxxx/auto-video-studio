@@ -210,20 +210,25 @@ export const decideCuts = (args: {
 	}
 	flush();
 
-	// clips without any speech (B-roll, scenery): keep them, minus long silences when asked
+	// clips without any speech (B-roll, fashion lookbook, scenery):
+	// NEVER discard B-roll/fashion footage as silence — keep full clip or slice into rhythmic 20-30s fashion shots.
 	bounds.forEach(([c0, c1], ci) => {
 		if (wordClip.includes(ci)) return;
-		if (!opts.removeSilence) {
-			takes.push({a: c0, b: c1, reason: 'broll'});
+		const clipDur = Math.max(0.2, c1 - c0);
+		const targetDur = opts.maxDuration > 0 ? opts.maxDuration : opts.fashionMode ? 28 : 0;
+		if (opts.fashionMode && targetDur > 0 && clipDur > targetDur * 1.15) {
+			const shotLen = opts.pace === 'ultra' ? 1.5 : opts.pace === 'natural' ? 2.6 : 2.0;
+			const count = Math.max(4, Math.round(targetDur / shotLen));
+			const stride = (clipDur - shotLen) / Math.max(1, count - 1);
+			for (let i = 0; i < count; i++) {
+				const a = c0 + Math.max(0, Math.min(clipDur - 0.4, i * stride));
+				const len = i < 2 ? Math.min(1.5, shotLen) : shotLen;
+				takes.push({a: +a.toFixed(2), b: +Math.min(c1, a + len).toFixed(2), reason: 'broll'});
+			}
 			return;
 		}
-		let cur = c0;
-		for (const [s0, e0] of silences) {
-			if (e0 <= c0 || s0 >= c1 || e0 - s0 < 1.2) continue;
-			if (s0 > cur) takes.push({a: cur, b: Math.min(c1, s0 + 0.2), reason: 'broll'});
-			cur = Math.max(cur, e0 - 0.2);
-		}
-		if (cur < c1 - 0.2) takes.push({a: cur, b: c1, reason: 'broll'});
+		// Keep full B-roll / fashion clip intact so timeline never collapses to 0.5s
+		takes.push({a: c0, b: c1, reason: 'broll'});
 	});
 
 	// merge touching pieces, drop slivers

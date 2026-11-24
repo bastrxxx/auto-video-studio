@@ -450,17 +450,61 @@ async function runBrowserPipeline(job, mode = 'auto') {
 		}
 		job.order = {ids: ordered.map((c) => c.id), reasons: {}, method: 'trình duyệt'};
 
-		// 3. Silences & Transcription
+		// 3. Silences & Fashion Rhythmic Cuts & Transcription
 		job.step = 'transcribe';
 		job.progress = 0.55;
 		const segments = [];
 		const captions = [];
+		const totalRawDur = ordered.reduce((acc, c) => acc + Math.max(0.5, c.duration || 0), 0);
+		const targetTotalDur =
+			job.options.maxDuration > 0
+				? Math.min(totalRawDur, job.options.maxDuration)
+				: job.options.fashionMode && totalRawDur > 30
+					? 28
+					: totalRawDur;
+
+		/** Slice a clip [0..dur] into rhythmic fashion shots (Hook 0-1.5s, 1.5-3.0s, then ~2.2s shots) up to budgetSec */
+		const sliceFashionShots = (dur, budgetSec) => {
+			const usable = Math.max(0.5, Math.min(dur, budgetSec));
+			const shots = [];
+			if (usable <= 3.2) {
+				shots.push([0, usable]);
+				return shots;
+			}
+			// If source clip is longer than budgetSec, pick evenly spaced highlight windows across the entire clip
+			if (dur > usable * 1.15) {
+				const shotLen = job.options.pace === 'ultra' ? 1.5 : job.options.pace === 'natural' ? 2.6 : 2.0;
+				const count = Math.max(4, Math.round(usable / shotLen));
+				const stride = (dur - shotLen) / Math.max(1, count - 1);
+				for (let i = 0; i < count; i++) {
+					const a = Math.max(0, Math.min(dur - 0.5, i * stride));
+					const len = i < 2 ? Math.min(1.5, shotLen) : shotLen;
+					shots.push([+a.toFixed(2), +Math.min(dur, a + len).toFixed(2)]);
+				}
+				return shots;
+			}
+			// Otherwise keep the whole usable range, split cleanly on rhythmic fashion beats (0-1.5s, 1.5-3.0s, then ~2.4s)
+			const cuts = [0, 1.5, 3.0];
+			let t = 3.0;
+			const step = job.options.pace === 'ultra' ? 1.8 : job.options.pace === 'natural' ? 3.2 : 2.4;
+			while (t + step < usable - 0.8) {
+				t += step;
+				cuts.push(+t.toFixed(2));
+			}
+			cuts.push(+usable.toFixed(2));
+			for (let i = 0; i < cuts.length - 1; i++) {
+				if (cuts[i + 1] - cuts[i] >= 0.35) shots.push([cuts[i], cuts[i + 1]]);
+			}
+			return shots.length ? shots : [[0, +usable.toFixed(2)]];
+		};
+
 		for (const c of ordered) {
 			const file = store.files.get(`${job.id}:${c.id}`);
-			log(`Phân tích âm thanh & khoảng lặng: ${c.name}...`);
-			const silences = file ? await detectBrowserSilences(file, c.duration) : [];
+			const clipBudget = totalRawDur > 0 ? targetTotalDur * (c.duration / totalRawDur) : c.duration;
+			log(`Phân tích âm thanh & nhịp cắt thời trang: ${c.name} (${c.duration.toFixed(1)}s)...`);
+			const silences = file && job.options.removeSilence ? await detectBrowserSilences(file, c.duration) : [];
 			let cur = 0;
-			const takes = [];
+			let takes = [];
 			if (job.options.removeSilence && silences.length) {
 				for (const [s, e] of silences) {
 					if (s - cur >= 0.25) takes.push([Math.max(0, cur - 0.06), Math.min(c.duration, s + 0.08)]);
@@ -468,7 +512,14 @@ async function runBrowserPipeline(job, mode = 'auto') {
 				}
 				if (c.duration - cur >= 0.25) takes.push([Math.max(0, cur - 0.06), c.duration]);
 			}
-			if (!takes.length) takes.push([0, c.duration]);
+			const keptDur = takes.reduce((acc, [a, b]) => acc + (b - a), 0);
+			// Guard: on Fashion / Lookbook / B-roll clips without loud speech, silence-cutting drops almost everything!
+			// Fall back to rhythmic fashion shot slicing so we hit the desired 20-30s duration.
+			const minExpected = Math.min(clipBudget * 0.45, c.duration * 0.45, 6);
+			if (!takes.length || keptDur < minExpected) {
+				log(`Clip thời trang / B-roll ít lời nói → chuyển sang cắt nhịp Fashion (${clipBudget.toFixed(1)}s)...`);
+				takes = sliceFashionShots(c.duration, clipBudget);
+			}
 			for (const [a, b] of takes) segments.push({id: AVS.tlId(), clip: c.id, a: +a.toFixed(2), b: +b.toFixed(2)});
 
 			let sentences = null;
@@ -484,7 +535,7 @@ async function runBrowserPipeline(job, mode = 'auto') {
 					}
 					captions.push(cap);
 				}
-			} else {
+			} else if (!job.options.voiceOverScript) {
 				takes.forEach(([a, b]) => {
 					const dur = b - a;
 					const step = Math.min(3.0, Math.max(1.5, dur));
@@ -493,6 +544,45 @@ async function runBrowserPipeline(job, mode = 'auto') {
 						captions.push(AVS.retimeCaption({id: AVS.tlId(), clip: c.id, words: []}, `Câu phụ đề #${captions.length + 1} (bấm để sửa chữ)`, +t.toFixed(2), +end.toFixed(2)));
 					}
 				});
+			}
+		}
+
+		// If user selected a Voice Over script (and no ASR sentences), auto-distribute VO script into timed Vietnamese captions!
+		if (!captions.length && job.options.voiceOverScript && segments.length) {
+			const cleanVo = String(job.options.voiceOverScript).replace(/\[[^\]]+\]/g, '').replace(/\s+/g, ' ').trim();
+			const rawPhrases = cleanVo
+				.split(/(?<=[.!?,;:])\s+/)
+				.flatMap((p) => {
+					const ws = p.trim().split(/\s+/).filter(Boolean);
+					const chunks = [];
+					for (let i = 0; i < ws.length; i += 6) chunks.push(ws.slice(i, i + 6).join(' '));
+					return chunks;
+				})
+				.filter(Boolean);
+			if (rawPhrases.length) {
+				const totalSegDur = segments.reduce((acc, s) => acc + (s.b - s.a), 0);
+				const totalChars = rawPhrases.reduce((acc, p) => acc + p.length, 0) || 1;
+				let cursor = 0;
+				const mapOutToSrc = (t) => {
+					let acc = 0;
+					for (const seg of segments) {
+						const d = seg.b - seg.a;
+						if (t <= acc + d + 1e-4) return {clip: seg.clip, t: seg.a + Math.max(0, Math.min(d, t - acc))};
+						acc += d;
+					}
+					const last = segments[segments.length - 1];
+					return {clip: last.clip, t: last.b};
+				};
+				for (const phrase of rawPhrases) {
+					const dur = Math.max(0.8, (totalSegDur * phrase.length) / totalChars);
+					const aOut = cursor;
+					const bOut = Math.min(totalSegDur, cursor + dur);
+					cursor = bOut;
+					const srcA = mapOutToSrc(aOut);
+					const srcB = mapOutToSrc(bOut);
+					const endT = srcB.clip === srcA.clip && srcB.t > srcA.t + 0.15 ? srcB.t : srcA.t + Math.max(0.6, bOut - aOut);
+					captions.push(AVS.retimeCaption({id: AVS.tlId(), clip: srcA.clip, words: []}, phrase, +srcA.t.toFixed(2), +endT.toFixed(2)));
+				}
 			}
 		}
 
