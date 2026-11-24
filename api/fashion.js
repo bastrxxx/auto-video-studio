@@ -346,6 +346,60 @@ export default async function handler(req, res) {
 		return res.status(200).json(result);
 	}
 
+	// POST /api/fashion/voiceover/tts — Real Vietnamese Cloud TTS (works 100% online on Vercel without localhost!)
+	if (pathname === '/api/fashion/voiceover/tts' && req.method === 'POST') {
+		const cleanText = String(body.text || '')
+			.replace(/\[[^\]]+\]/g, '')
+			.replace(/\s+/g, ' ')
+			.trim();
+		if (!cleanText) return res.status(400).json({ok: false, error: 'Thiếu nội dung lời thoại Voice Over'});
+
+		// Split into <= 170-char chunks at natural Vietnamese punctuation/word boundaries
+		const chunks = [];
+		let rest = cleanText;
+		while (rest.length > 0) {
+			if (rest.length <= 170) {
+				chunks.push(rest);
+				break;
+			}
+			let cut = rest.lastIndexOf('. ', 170);
+			if (cut < 50) cut = rest.lastIndexOf(', ', 170);
+			if (cut < 50) cut = rest.lastIndexOf(' ', 170);
+			if (cut < 20) cut = 170;
+			chunks.push(rest.slice(0, cut + 1).trim());
+			rest = rest.slice(cut + 1).trim();
+		}
+
+		const buffers = [];
+		for (const chunk of chunks) {
+			const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=vi&client=tw-ob&q=${encodeURIComponent(chunk)}`;
+			const r = await fetch(ttsUrl, {
+				headers: {
+					'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36',
+					Referer: 'https://translate.google.com/',
+				},
+				signal: AbortSignal.timeout(12_000),
+			});
+			if (!r.ok) {
+				return res.status(502).json({ok: false, error: `Cloud TTS tạm thời không phản hồi (${r.status})`});
+			}
+			const arr = Buffer.from(await r.arrayBuffer());
+			if (arr.length > 100) buffers.push(arr);
+		}
+		if (!buffers.length) {
+			return res.status(500).json({ok: false, error: 'Không tạo được dữ liệu âm thanh Voice Over'});
+		}
+		const merged = Buffer.concat(buffers);
+		const wordCount = cleanText.split(/\s+/).filter(Boolean).length;
+		const estDur = Number(Math.max(2, wordCount / 2.9).toFixed(1));
+		return res.status(200).json({
+			ok: true,
+			engine: 'Vercel Cloud TTS (Tiếng Việt)',
+			audioUrl: `data:audio/mpeg;base64,${merged.toString('base64')}`,
+			durationSec: estDur,
+		});
+	}
+
 	// POST /api/fashion/hook3s
 	if (pathname === '/api/fashion/hook3s' && req.method === 'POST') {
 		const hook3s = {

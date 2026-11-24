@@ -955,6 +955,10 @@ export async function handleBrowserApi(url, opts = {}) {
 	}
 
 	if (url === '/api/fashion/voiceover/tts' && method === 'POST') {
+		// 1. Try Vercel Cloud TTS first (same-origin HTTPS on vlivests.vercel.app -> no Mixed Content block!)
+		const cloud = await tryVercelOnline('/api/fashion/voiceover/tts', {method: 'POST', body});
+		if (cloud?.ok && cloud.audioUrl) return cloud;
+		// 2. Fallback to local Mac server if accessible
 		for (const localBase of ['http://localhost:8790', 'http://127.0.0.1:8790']) {
 			try {
 				const r = await fetch(`${localBase}/api/fashion/voiceover/tts`, {
@@ -969,7 +973,7 @@ export async function handleBrowserApi(url, opts = {}) {
 				}
 			} catch {}
 		}
-		throw new Error('Không kết nối được server Voice Over cục bộ tại http://localhost:8790. Hãy kiểm tra server local đã bật chưa.');
+		throw new Error('Không tạo được audio Voice Over. Vui lòng thử lại hoặc mở bản cục bộ http://localhost:8790/video-studio/.');
 	}
 
 	return {ok: true};
