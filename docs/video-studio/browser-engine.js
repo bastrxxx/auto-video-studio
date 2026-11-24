@@ -201,8 +201,15 @@ const analyzeBrowserColor = async (url, duration, width, height) => {
 	v.crossOrigin = 'anonymous';
 	v.src = url;
 	await new Promise((res) => {
-		v.onloadeddata = res;
-		v.onerror = res;
+		const to = setTimeout(res, 3000);
+		v.onloadeddata = () => {
+			clearTimeout(to);
+			res();
+		};
+		v.onerror = () => {
+			clearTimeout(to);
+			res();
+		};
 	});
 	const W = 64;
 	const H = Math.max(2, Math.round((W * height) / Math.max(1, width)));
@@ -238,12 +245,16 @@ const analyzeBrowserColor = async (url, duration, width, height) => {
 	return s ? AVS.color.autoAdjust(s) : null;
 };
 
-/** Detect silences using Web Audio API */
+/** Detect silences using Web Audio API (with timeout so large .MOV files never hang) */
 const detectBrowserSilences = async (file, duration) => {
 	try {
+		if (file.size > 120 * 1024 * 1024) return [];
 		const ab = await file.arrayBuffer();
 		const ac = new (window.AudioContext || window.webkitAudioContext)();
-		const audio = await ac.decodeAudioData(ab);
+		const audio = await Promise.race([
+			ac.decodeAudioData(ab),
+			new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 6000)),
+		]);
 		const ch = audio.getChannelData(0);
 		const sr = audio.sampleRate;
 		const win = Math.max(1, Math.floor(sr * 0.05)); // 50ms windows
@@ -370,13 +381,27 @@ export async function handleBrowserUpload(files, meta, existingJobId) {
 	return {ok: true, id: job.id, added, job};
 }
 
+async function ensureAvsLoaded() {
+	if (window.AVS?.compile) return window.AVS;
+	await new Promise((res) => {
+		const s = document.createElement('script');
+		s.src = './build/player.js';
+		s.onload = () => res();
+		s.onerror = () => res();
+		document.head.appendChild(s);
+		setTimeout(res, 6000);
+	});
+	return window.AVS;
+}
+
 async function runBrowserPipeline(job, mode = 'auto') {
-	const AVS = window.AVS;
+	const AVS = await ensureAvsLoaded();
 	const log = (s) => {
 		job.log.push(`[${new Date().toLocaleTimeString('vi-VN')}] ${s}`);
 		job.message = s;
 	};
 	try {
+		if (!AVS?.compile) throw new Error('Không tải được trình biên dịch Remotion (build/player.js). Hãy F5 tải lại trang.');
 		job.state = 'running';
 		job.version++;
 		await persistJob(job);
@@ -617,8 +642,13 @@ export async function handleBrowserApi(url, opts = {}) {
 		if (!job) throw new Error('Không tìm thấy dự án');
 		job.options = {...job.options, ...(body.options || {})};
 		if (body.face) job.faces = {...job.faces, ...body.face};
+		job.state = 'queued';
+		job.step = 'prep';
+		job.progress = 0.05;
+		job.error = undefined;
+		job.message = 'Đang khởi chạy xử lý video...';
 		await persistJob(job);
-		setTimeout(() => runBrowserPipeline(job, 'auto'), 50);
+		setTimeout(() => runBrowserPipeline(job, 'auto'), 20);
 		return {ok: true, id: job.id};
 	}
 	if ((m = /^\/api\/jobs\/([^/]+)\/render$/.exec(url))) {
@@ -626,8 +656,13 @@ export async function handleBrowserApi(url, opts = {}) {
 		if (!job) throw new Error('Không tìm thấy dự án');
 		job.options = {...job.options, ...(body.options || {})};
 		if (body.timeline) await persistTimeline(job.id, body.timeline);
+		job.state = 'queued';
+		job.step = 'plan';
+		job.progress = 0.1;
+		job.error = undefined;
+		job.message = 'Đang xuất lại timeline...';
 		await persistJob(job);
-		setTimeout(() => runBrowserPipeline(job, 'timeline'), 50);
+		setTimeout(() => runBrowserPipeline(job, 'timeline'), 20);
 		return {ok: true, id: job.id};
 	}
 	if ((m = /^\/api\/jobs\/([^/]+)\/detail$/.exec(url))) {
