@@ -33,7 +33,7 @@ export type AdjustKey = (typeof ADJUST_KEYS)[number];
 
 export const ZERO_ADJUST: ColorAdjust = {exposure: 0, brightness: 0, contrast: 0, saturation: 0, temperature: 0, tint: 0, highlights: 0, shadows: 0, hue: 0, fade: 0, vignette: 0, grain: 0};
 
-export const DEFAULT_COLOR: ColorSettings = {...ZERO_ADJUST, auto: true, autoStrength: 80, filter: '', filterAmount: 100};
+export const DEFAULT_COLOR: ColorSettings = {...ZERO_ADJUST, auto: false, autoStrength: 80, filter: '', filterAmount: 100};
 
 /** CapCut-like filter presets */
 export const COLOR_FILTERS: {id: string; name: string; adj: Partial<ColorAdjust>}[] = [

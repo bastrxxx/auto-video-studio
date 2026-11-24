@@ -430,12 +430,16 @@ async function runBrowserPipeline(job, mode = 'auto') {
 			return;
 		}
 
-		// 1. Prep + Auto Color
+		// 1. Prep (+ optional Auto Color only if user explicitly turned it on)
 		job.step = 'prep';
 		job.progress = 0.15;
-		log('Đo màu tự động & phân tích khung hình từng clip...');
-		for (const c of job.clips) {
-			if (!c.color) c.color = await analyzeBrowserColor(c.url, c.duration, c.width, c.height);
+		if (job.options.color?.auto === true) {
+			log('Đo màu tự động từng clip...');
+			for (const c of job.clips) {
+				if (!c.color) c.color = await analyzeBrowserColor(c.url, c.duration, c.width, c.height);
+			}
+		} else {
+			log('Giữ nguyên màu gốc (bạn có thể chỉnh màu sau trong tab 🎨 Chỉnh màu)...');
 		}
 
 		// 2. Order clips
@@ -535,15 +539,6 @@ async function runBrowserPipeline(job, mode = 'auto') {
 					}
 					captions.push(cap);
 				}
-			} else if (!job.options.voiceOverScript) {
-				takes.forEach(([a, b]) => {
-					const dur = b - a;
-					const step = Math.min(3.0, Math.max(1.5, dur));
-					for (let t = a; t < b - 0.2; t += step) {
-						const end = Math.min(b, t + step);
-						captions.push(AVS.retimeCaption({id: AVS.tlId(), clip: c.id, words: []}, `Câu phụ đề #${captions.length + 1} (bấm để sửa chữ)`, +t.toFixed(2), +end.toFixed(2)));
-					}
-				});
 			}
 		}
 
@@ -589,12 +584,13 @@ async function runBrowserPipeline(job, mode = 'auto') {
 		// 4. Build Timeline & EditPlan
 		job.step = 'plan';
 		job.progress = 0.85;
+		const hookTitle = (job.options.title || '').trim() || (job.options.hook3sDescription || '').split('|')[0]?.replace(/^Câu mở:\s*/i, '').trim().slice(0, 48) || '';
 		const tl = {
 			version: 1,
 			segments,
 			captions,
 			beats: [],
-			title: job.options.title ? {text: job.options.title, dur: 2.6} : null,
+			title: hookTitle ? {text: hookTitle, dur: 3.0} : null,
 			cta: job.options.cta ? {text: job.options.cta, dur: 2.6} : null,
 		};
 		await persistTimeline(job.id, tl);

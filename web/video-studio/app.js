@@ -706,6 +706,17 @@ const optionsPayload = () => {
 
 async function start() {
 	if (!state.jobId) return;
+	// Require Voice Over + Hook 3s first when in Fashion 20-30s mode so timeline is built around real VO & Hook 3s
+	if (state.opts.fashionMode && !state.opts.voiceOverScript?.trim()) {
+		const goVo = confirm(
+			'Chưa có kịch bản Voice Over & Hook 3 giây đầu!\n\nBấm OK để chuyển sang tab "🎙️ Voice Over & Hook 3s" tạo & chọn phương án tối ưu trước khi ra timeline (hoặc bấm Huỷ để vẫn dựng chỉ hình không phụ đề).',
+		);
+		if (goVo) {
+			switchView('voiceover');
+			setTimeout(() => $('#voUserInput')?.focus(), 80);
+			return;
+		}
+	}
 	if (state.job?.result && editorDirty() && !confirm('Dựng lại tự động sẽ tạo timeline mới và thay thế các chỉnh sửa tay trên timeline. Tiếp tục?')) return;
 	$('#startBtn').disabled = true;
 	if (state.pending.length) {
@@ -835,7 +846,7 @@ function setColorOpt(color) {
 }
 
 function syncQuickColor() {
-	const auto = state.opts.color?.auto !== false;
+	const auto = state.opts.color?.auto === true;
 	$$('#quickColor button').forEach((b) => b.classList.toggle('on', (b.dataset.v === 'auto') === auto));
 }
 
