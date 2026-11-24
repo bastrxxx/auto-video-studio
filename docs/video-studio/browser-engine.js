@@ -834,7 +834,21 @@ export async function handleBrowserApi(url, opts = {}) {
 	}
 
 	if (url === '/api/fashion/voiceover/tts' && method === 'POST') {
-		throw new Error('Tổng hợp file Audio WAV cần chạy máy chủ cục bộ Mac (`npm start` tại localhost:8790) hoặc VoiceStudio Pro.');
+		for (const localBase of ['http://localhost:8790', 'http://127.0.0.1:8790']) {
+			try {
+				const r = await fetch(`${localBase}/api/fashion/voiceover/tts`, {
+					method: 'POST',
+					headers: {'Content-Type': 'application/json'},
+					body: JSON.stringify(body),
+				});
+				const j = await r.json().catch(() => null);
+				if (r.ok && j?.ok) {
+					if (j.audioUrl && j.audioUrl.startsWith('/')) j.audioUrl = `${localBase}${j.audioUrl}`;
+					return j;
+				}
+			} catch {}
+		}
+		throw new Error('Không kết nối được server Voice Over cục bộ tại http://localhost:8790. Hãy kiểm tra server local đã bật chưa.');
 	}
 
 	return {ok: true};

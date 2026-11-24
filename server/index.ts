@@ -37,6 +37,7 @@ app.use((req, res, next) => {
 	const origin = req.headers.origin || '*';
 	res.setHeader('Access-Control-Allow-Origin', origin);
 	res.setHeader('Access-Control-Allow-Credentials', 'true');
+	res.setHeader('Access-Control-Allow-Private-Network', 'true');
 	res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
 	res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 	if (req.method === 'OPTIONS') {
@@ -176,6 +177,7 @@ app.post('/api/agy/run', async (req, res) => {
 });
 
 app.use('/api', (req, res, next) => {
+	if (req.path.startsWith('/fashion/') || req.path === '/dna' || req.path.startsWith('/dna/')) return next();
 	if (getAuthedUser(req)) return next();
 	res.status(401).json({ok: false, authRequired: true, error: 'Vui lòng đăng nhập để sử dụng'});
 });
