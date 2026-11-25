@@ -97,6 +97,8 @@ export async function findAgyBinary(customPath?: string): Promise<string | null>
 
 let cachedModels: AgyModelItem[] | null = null;
 let cachedModelsAt = 0;
+let cachedVersion = '';
+let warmInFlight = false;
 
 async function fetchLiveAgyModels(binPath: string): Promise<AgyModelItem[]> {
 	if (cachedModels && Date.now() - cachedModelsAt < 5 * 60_000) return cachedModels;
@@ -125,26 +127,38 @@ async function fetchLiveAgyModels(binPath: string): Promise<AgyModelItem[]> {
 	return AGY_MODELS;
 }
 
+function warmAgyCacheInBackground(binPath: string) {
+	if (warmInFlight) return;
+	warmInFlight = true;
+	(async () => {
+		try {
+			if (!cachedVersion) {
+				const {stdout} = await execFileAsync(binPath, ['--version'], {timeout: 3500});
+				cachedVersion = stdout.trim().split('\n')[0] || '';
+			}
+		} catch {}
+		try {
+			await fetchLiveAgyModels(binPath);
+		} catch {}
+		warmInFlight = false;
+	})();
+}
+
 export async function getAgyStatus() {
 	const config = getAgyConfig();
 	const binPath = await findAgyBinary(config.customPath);
-	let version = '';
-	let models = AGY_MODELS;
-	if (binPath) {
-		try {
-			const {stdout} = await execFileAsync(binPath, ['--version'], {timeout: 3500});
-			version = stdout.trim().split('\n')[0] || '';
-		} catch {}
-		models = await fetchLiveAgyModels(binPath);
+	if (binPath && (!cachedModels || !cachedVersion)) {
+		// Warm version + live models list asynchronously so /api/agy/status ALWAYS responds in <5ms
+		warmAgyCacheInBackground(binPath);
 	}
 	return {
 		ok: true,
 		installed: Boolean(binPath),
 		binPath: binPath || '',
-		version,
+		version: cachedVersion || (binPath ? '1.5.x' : ''),
 		config,
 		activeModel: config.customModel || config.model,
-		models,
+		models: cachedModels || AGY_MODELS,
 	};
 }
 

@@ -974,11 +974,14 @@
 	let agyServerCache = null;
 	async function resolveAgyBase() {
 		if (agyServerCache !== null) return agyServerCache;
-		const candidates = location.hostname === 'localhost' || location.hostname === '127.0.0.1' ? ['', 'http://localhost:8790'] : ['http://localhost:8790', ''];
+		const candidates =
+			location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+				? ['', 'http://localhost:8790', 'http://127.0.0.1:8790']
+				: ['http://localhost:8790', 'http://127.0.0.1:8790', ''];
 		for (const base of [...new Set(candidates)]) {
 			try {
 				const ctrl = new AbortController();
-				const to = setTimeout(() => ctrl.abort(), 1400);
+				const to = setTimeout(() => ctrl.abort(), 5000);
 				const r = await fetch(`${base}/api/agy/status`, {signal: ctrl.signal});
 				clearTimeout(to);
 				if (r.ok && (r.headers.get('content-type') || '').includes('application/json')) {
